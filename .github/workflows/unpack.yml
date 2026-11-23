@@ -1,0 +1,34 @@
+# One-off helper: unpacks star-song.zip (uploaded to the top of the repository) with all its
+# folders, removes any loose files from earlier uploads, and deletes the zip. It runs by itself
+# when star-song.zip is uploaded. The project's own workflows are added separately.
+name: Unpack the uploaded project (one-off)
+
+on:
+  push:
+    paths: ["star-song.zip"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Replace loose files with the project from star-song.zip
+        run: |
+          test -f star-song.zip || { echo "::error::Upload star-song.zip to the top of the repository first"; exit 1; }
+          mkdir -p /tmp/unz
+          unzip -q star-song.zip -d /tmp/unz
+          src=$(dirname "$(find /tmp/unz -maxdepth 3 -name SETUP-GUIDE.md | head -1)")
+          echo "Unpacking from $src"
+          git ls-files | grep -v -E '^(\.github/|star-song\.zip$)' | xargs -r -d '\n' git rm -q --
+          (cd "$src" && tar --exclude='./.github' -cf - .) | tar -xf -
+          git rm -q star-song.zip
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Unpack the Star Song project with its folders"
+          git push
