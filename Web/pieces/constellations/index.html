@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en" data-home="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Constellations</title>
+<link rel="stylesheet" href="../../fonts/fonts.css">
+<script src="../../pieces.js"></script>
+<script src="../../shared/host.js"></script>
+<style>
+:root{
+  --ink:#e8ecf6; --ink-2:#aeb6cc; --ink-3:#7c869f; --line:rgba(255,255,255,.1);
+  --card:rgba(7,10,24,.66); --gold:#f2dfb2; --gold-ink:#16182a;
+  --serif:"Cormorant Garamond",Georgia,serif; --sans:"Jost",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#000;color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+#sky{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;touch-action:manipulation}
+body.idle{cursor:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.hide{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+
+.overlay{position:fixed;inset:0;display:grid;place-items:center;z-index:5;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+  transition:opacity .5s ease,visibility 0s linear 0s;overflow-y:auto}
+.card{width:min(460px,100%);padding:30px 28px 24px;border-radius:24px;background:var(--card);
+  border:1px solid var(--line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 30px 80px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-family:var(--serif);font-weight:300;font-size:clamp(44px,8vw,60px);line-height:.95;letter-spacing:.005em}
+h2{margin:0;font-family:var(--serif);font-weight:400;font-style:italic;font-size:30px;line-height:1.05}
+.lede{margin:0;font-family:var(--serif);font-size:19px;line-height:1.35;color:var(--ink-2)}
+.grp{display:flex;flex-direction:column;gap:8px}
+.lab{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.seg{display:grid;gap:6px}
+.seg.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg button{height:36px;border-radius:999px;border:1px solid var(--line);font-size:13.5px;color:var(--ink-2);padding:0 8px;white-space:nowrap}
+.seg button:hover{border-color:rgba(255,255,255,.28);color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#0a0d1c}
+.note{margin:0;font-size:12.5px;line-height:1.5;color:var(--ink-3);min-height:1.5em}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.primary{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 26px 0 21px;border-radius:999px;
+  background:var(--gold);color:var(--gold-ink);font-weight:500;font-size:15px}
+.primary:hover{filter:brightness(1.06)}
+.primary svg{width:14px;height:14px}
+.ghost{height:48px;padding:0 20px;border-radius:999px;border:1px solid var(--line);font-size:14.5px;color:var(--ink-2)}
+.ghost:hover{border-color:rgba(255,255,255,.3);color:var(--ink)}
+.meta{margin:0;font-size:12px;color:var(--ink-3);letter-spacing:.02em}
+.small{font-size:12.5px;line-height:1.5;color:var(--ink-3);margin:0}
+video{width:100%;max-height:46vh;border-radius:14px;background:#000;display:block}
+
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:4;
+  display:flex;align-items:center;gap:2px;padding:6px;border-radius:999px;background:rgba(7,10,24,.62);
+  border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  transition:opacity .45s ease,transform .45s ease}
+.bar.away{opacity:0;transform:translate(-50%,12px)}
+.ic{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2)}
+.ic:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+.ic svg{width:18px;height:18px}
+.ic.main{background:var(--gold);color:var(--gold-ink)}
+.ic.main:hover{background:var(--gold);filter:brightness(1.06)}
+.ic.rec svg{color:#ff6b6b}
+.txt{height:42px;padding:0 14px;border-radius:999px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.txt:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+
+.pill{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;border-radius:999px;background:rgba(7,10,24,.72);
+  border:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums;transition:opacity .3s}
+.dot{width:9px;height:9px;border-radius:50%;background:#ff5a5a;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.pill button{height:30px;padding:0 14px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);transform:translateX(-50%);z-index:9;
+  padding:10px 18px;border-radius:999px;background:rgba(232,236,246,.94);color:#0a0d1c;font-size:13.5px;
+  opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+@media (max-width:520px){.txt{display:none}.card{padding:24px 20px 20px}}
+@media (prefers-reduced-motion:reduce){.overlay,.bar{transition:none}}
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html.in-app #fs{display:none!important}
+#frameBtn,#recBar,#recOpen,#recCard,#doneCard{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="sky" role="img" aria-label="A night sky where every star is a musical note. Chords draw constellations that fade and return."></canvas>
+
+<div class="overlay" id="menu">
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h1>Constellations</h1>
+      <p class="lede">Every star is a note. Each chord draws its own constellation, slips away, and comes back to the same place in the sky.</p>
+    </div>
+    <div class="grp" hidden><span class="lab">Mood</span><div class="seg c2" id="moodSeg"></div><p class="note" id="moodNote"></p></div>
+    <div class="grp" hidden><span class="lab">Length</span><div class="seg c3" id="lenSeg"></div></div>
+    <div class="grp" hidden><span class="lab">Frame</span><div class="seg c3" id="frameSeg"></div></div>
+    <div class="row">
+      <button class="primary" id="play" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.2v11.6L13.6 8z" fill="currentColor"/></svg><span>Listen</span></button>
+      <button class="ghost" id="newSky" type="button">New sky</button>
+      <button class="ghost" id="recOpen" type="button">Record</button>
+    </div>
+    <p class="meta" id="meta"></p>
+  </div>
+</div>
+
+<div class="bar hide" id="bar">
+  <button class="ic main" id="pp" type="button" aria-label="Pause"></button>
+  <button class="ic" id="restart" type="button" aria-label="Start again" title="Start again"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a6 6 0 1 0 1.8-4.3"/><path d="M3.8 3.2v3.4h3.4"/></svg></button>
+  <button class="ic" id="newBar" type="button" aria-label="New sky" title="New sky"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5l1.7 4.6 4.8.2-3.8 3 1.3 4.7L10 12.3 6 15l1.3-4.7-3.8-3 4.8-.2z"/></svg></button>
+  <span class="sep"></span>
+  <button class="txt" id="frameBtn" type="button" title="Frame">Screen</button>
+  <button class="txt" id="textBtn" type="button" title="Show or hide the writing">Text on</button>
+  <button class="ic rec" id="recBar" type="button" aria-label="Record a video" title="Record a video"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="5.5" fill="currentColor"/></svg></button>
+  <button class="ic" id="fs" type="button" aria-label="Full screen" title="Full screen"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5v-4h4M12.5 3.5h4v4M16.5 12.5v4h-4M7.5 16.5h-4v-4"/></svg></button>
+  <button class="ic" id="menuBtn" type="button" aria-label="Back to settings" title="Settings"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12"/></svg></button>
+</div>
+
+<div class="overlay hide" id="recCard">
+  <div class="card">
+    <h2>Record a video</h2>
+    <p class="small">The piece plays from the beginning and is recorded straight from this page, sound included. Keep this tab open and visible until it finishes.</p>
+    <div class="grp"><span class="lab">Format</span><div class="seg c2" id="recFrameSeg"></div></div>
+    <div class="grp"><span class="lab">Length</span><div class="seg c3" id="recLenSeg"></div><p class="note" id="recNote"></p></div>
+    <div class="row">
+      <button class="primary" id="recGo" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="currentColor"/></svg><span>Start recording</span></button>
+      <button class="ghost" id="recCancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hide" id="doneCard">
+  <div class="card">
+    <h2>Your video is ready</h2>
+    <video id="preview" controls playsinline></video>
+    <p class="meta" id="doneMeta"></p>
+    <div class="row">
+      <button class="primary" id="save" type="button"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13.5h10"/></svg><span>Save video</span></button>
+      <button class="ghost" id="discard" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="pill hide" id="recPill"><span class="dot"></span><span id="recTime">Recording</span><button id="recStop" type="button">Cancel</button></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const TAU = Math.PI * 2;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const fmt = (s) => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const hex = (s) => (s >>> 0).toString(16).toUpperCase().padStart(8, '0');
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+function mulberry32(a) {
+  a = a >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pickW(R, items) {
+  let tot = 0; for (const it of items) tot += it[1];
+  let r = R() * tot;
+  for (const it of items) { r -= it[1]; if (r <= 0) return it[0]; }
+  return items[items.length - 1][0];
+}
+const gauss = (R) => (R() + R() + R() - 1.5) * 1.15;
+
+// ---------- music theory ----------
+const SHARP = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const FLAT = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
+const SCALES = {
+  ionian: [0, 2, 4, 5, 7, 9, 11], lydian: [0, 2, 4, 6, 7, 9, 11], mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  dorian: [0, 2, 3, 5, 7, 9, 10], aeolian: [0, 2, 3, 5, 7, 8, 10], phrygian: [0, 1, 3, 5, 7, 8, 10],
+};
+const MODE_NAME = { ionian: 'major', lydian: 'Lydian', mixolydian: 'Mixolydian', dorian: 'Dorian', aeolian: 'minor', phrygian: 'Phrygian' };
+const REL = { ionian: 0, lydian: 7, mixolydian: 5, dorian: 10, aeolian: 3, phrygian: 8 };
+const FLAT_SET = new Set([5, 10, 3, 8, 1]);
+
+// tim: [FM ratio, FM index, decay seconds, gain]
+const MOODS = {
+  clear: {
+    label: 'Clear night', note: 'Major and Lydian keys. Glassy celesta over a low hum.',
+    modes: ['ionian', 'lydian'], keys: [0, 2, 4, 7, 9, 5], bpm: 66, ninth: 0.6, wet: 0.4,
+    tim: { arp: [3, 1.5, 2.4, 0.9], mel: [2, 1.1, 3.2, 1], bloom: [1, 0.7, 5, 0.8], bass: [1, 1.2, 6, 1.15] },
+    pal: { bg: ['#02040d', '#0b1430'], neb: [80, 110, 255], line: [200, 218, 255], trail: [255, 214, 150], band: [150, 170, 255], hz: null },
+  },
+  aurora: {
+    label: 'Aurora', note: 'Dorian and Mixolydian. Soft bells under green light.',
+    modes: ['dorian', 'mixolydian'], keys: [2, 9, 4, 7, 11], bpm: 62, ninth: 0.7, wet: 0.46,
+    tim: { arp: [2, 1.7, 2.8, 0.85], mel: [2, 1.0, 3.6, 1], bloom: [1, 0.6, 5.5, 0.8], bass: [1, 1.0, 6.5, 1.15] },
+    pal: { bg: ['#020a0c', '#071e26'], neb: [40, 220, 160], line: [190, 255, 228], trail: [255, 190, 225], band: [120, 230, 200], hz: [40, 200, 150] },
+  },
+  eclipse: {
+    label: 'Eclipse', note: 'Minor and Phrygian. Gong-like bells in a crimson dark.',
+    modes: ['aeolian', 'phrygian'], keys: [9, 4, 2, 11, 0], bpm: 56, ninth: 0.5, wet: 0.5,
+    tim: { arp: [1.41, 2.0, 3.0, 0.8], mel: [2, 1.3, 3.6, 0.95], bloom: [1.41, 0.8, 6, 0.75], bass: [1, 1.6, 7, 1.2] },
+    pal: { bg: ['#05020a', '#1a0618'], neb: [210, 50, 110], line: [255, 205, 215], trail: [255, 170, 110], band: [220, 120, 170], hz: null },
+  },
+  dawn: {
+    label: 'First light', note: 'A bright Lydian lift. Music-box bells as the sky warms.',
+    modes: ['lydian', 'ionian'], keys: [5, 10, 3, 0, 7], bpm: 72, ninth: 0.65, wet: 0.36,
+    tim: { arp: [3.5, 1.2, 2.0, 0.9], mel: [3, 0.9, 2.8, 1], bloom: [1, 0.6, 4.5, 0.8], bass: [1, 1.1, 5.5, 1.15] },
+    pal: { bg: ['#060920', '#2a1736'], neb: [255, 140, 110], line: [255, 236, 215], trail: [255, 226, 150], band: [255, 190, 200], hz: [255, 150, 100] },
+  },
+};
+const LENGTHS = { short: { label: 'Short · 1 min' }, full: { label: 'Full · 3 min' }, long: { label: 'Long · 5 min' } };
+const FRAMES = { fill: 'Screen', landscape: '16:9', portrait: '9:16' };
+
+const A_MAJ = [[0, 5, 3, 4], [0, 3, 5, 4], [0, 2, 5, 3], [0, 5, 1, 4], [0, 4, 5, 3], [0, 1, 3, 4]];
+const A_MIN = [[0, 5, 2, 6], [0, 3, 5, 6], [0, 6, 5, 6], [0, 2, 3, 6], [0, 5, 3, 4], [0, 3, 6, 2]];
+const B_MAJ = [[3, 2, 5], [5, 2, 3], [1, 5, 3], [2, 5, 3], [3, 5, 1], [5, 3, 1]];
+const B_MIN = [[3, 5, 2], [5, 2, 3], [2, 6, 3], [6, 2, 5], [3, 6, 5]];
+
+const SECS = {
+  prelude: { label: 'Prelude', drone: true, arp: 0, pat: 'up', oct: 0, mel: 'none' },
+  refrain: { label: 'Refrain', drone: true, arp: 0.55, pat: 'up', oct: 0, mel: 'motif' },
+  away: { label: 'Away', drone: false, arp: 0.42, pat: 'wave', oct: 12, mel: 'answer' },
+  ret: { label: 'Return', drone: true, arp: 0.6, pat: 'up', oct: 0, mel: 'motif' },
+  retv: { label: 'Return', drone: true, arp: 0.72, pat: 'wave', oct: 0, mel: 'full' },
+  far: { label: 'Far away', drone: false, arp: 0.5, pat: 'down', oct: 0, mel: 'seq' },
+  further: { label: 'Further', drone: false, arp: 0.45, pat: 'rand', oct: 12, mel: 'answer' },
+  coda: { label: 'Last light', drone: true, arp: 0.35, pat: 'down', oct: 0, mel: 'call' },
+};
+const NAMES = ['The Lantern', 'The Heron', 'The Ferryman', 'The Open Gate', 'The Harp', 'The Little Boat', 'The Keeper',
+  'The Moth', 'The Bell Tower', 'The Sleeper', 'The Fox', 'The Kite', 'The Weaver', 'The Orchard', 'The Lighthouse',
+  'The Wanderer', 'The Sparrow', 'The Well', 'The Reed Crown', 'The Ladder', 'The Sea Glass', 'The Hollow Oak',
+  'The Lamplighter', 'The Swan', 'The Shepherd', 'The Compass', 'The Willow', 'The Kettle Drum'];
+
+function symFor(root, ivs, flats) {
+  const N = (flats ? FLAT : SHARP)[root];
+  const has = (x) => ivs.includes(x);
+  const sus = !has(3) && !has(4) && has(5);
+  const minor = has(3);
+  const s7 = has(11) ? 11 : has(10) ? 10 : null;
+  const n9 = has(2), b9 = has(1);
+  let q;
+  if (sus) q = s7 === 10 ? (n9 ? '9sus4' : '7sus4') : 'sus4';
+  else if (minor) q = s7 === 10 ? (n9 ? 'm9' : 'm7') : s7 === 11 ? 'm(maj7)' : (n9 ? 'm(add9)' : 'm');
+  else q = s7 === 11 ? (n9 ? 'maj9' : 'maj7') : s7 === 10 ? (n9 ? '9' : '7') : (n9 ? 'add9' : '');
+  if (b9) q += '(♭9)';
+  return N + q;
+}
+
+function voice(root, ivs, R) {
+  const bass = 38 + (((root - 38) % 12) + 12) % 12;
+  const third = ivs.find((x) => x === 3 || x === 4) ?? (ivs.includes(5) ? 5 : null);
+  const sev = ivs.find((x) => x === 10 || x === 11);
+  const nin = ivs.find((x) => x === 1 || x === 2);
+  const order = [7, third];
+  if (sev != null) order.push(sev);
+  if (nin != null) order.push(nin);
+  if (R() < 0.55) order.push(third);
+  const out = [bass];
+  let cur = bass + 3;
+  for (const iv of order) {
+    if (iv == null) continue;
+    let m = cur + 1 + ((((root + iv) - (cur + 1)) % 12) + 12) % 12;
+    if (m - cur < 3) m += 12;
+    if (m > 86) break;
+    out.push(m); cur = m;
+  }
+  return out;
+}
+
+function compose(seed, moodKey, lenKey) {
+  const R = mulberry32((seed ^ 0x9E3779B9) >>> 0);
+  const pick = (a) => a[Math.floor(R() * a.length)];
+  const M = MOODS[moodKey];
+  const modeName = pick(M.modes), sc = SCALES[modeName], minor = sc[2] === 3;
+  const key = pick(M.keys);
+  const flats = FLAT_SET.has((key + REL[modeName]) % 12);
+  let bpm = M.bpm;
+  if (lenKey === 'short') bpm = Math.max(bpm, 70);
+  if (lenKey === 'long') bpm -= 3;
+  const beat = 60 / bpm, bar = beat * 4, e8 = beat / 2;
+
+  const cache = new Map();
+  function chordOn(k, deg) {
+    const ck = k + ':' + deg;
+    if (cache.has(ck)) return cache.get(ck);
+    const pcAt = (j) => (k + sc[(deg + 2 * j) % 7]) % 12;
+    const root = pcAt(0);
+    const iv = (j) => (pcAt(j) - root + 12) % 12;
+    let c = null;
+    if (iv(2) === 7) {
+      const ivs = [0, iv(1), 7];
+      if (R() < 0.78) ivs.push(iv(3));
+      if (iv(4) === 2 && R() < M.ninth) ivs.push(2);
+      c = mkChord(root, ivs, symFor(root, ivs, flats));
+    }
+    cache.set(ck, c);
+    return c;
+  }
+  function mkChord(root, ivs, sym, pivot) {
+    const v = voice(root, ivs, R);
+    return { root, ivs, sym, voicing: v, uppers: v.slice(1), pcs: new Set(ivs.map((x) => (root + x) % 12)),
+      pivot: !!pivot, id: root + '|' + v.join('.') };
+  }
+  function getChord(k, deg) {
+    for (const d of [deg, (deg + 5) % 7, (deg + 3) % 7, (deg + 1) % 7, (deg + 4) % 7]) {
+      const c = chordOn(k, d); if (c) return c;
+    }
+    return chordOn(k, 0);
+  }
+  let pivotC = null;
+  function pivot() {
+    if (pivotC) return pivotC;
+    const root = (key + 7) % 12;
+    const ivs = minor ? [0, 4, 7, 10, 1] : [0, 5, 7, 10, 2];
+    pivotC = mkChord(root, ivs, symFor(root, ivs, flats), true);
+    return pivotC;
+  }
+  const progA = pick(minor ? A_MIN : A_MAJ).map((d) => getChord(key, d));
+  const home = progA[0];
+  const progB = pick(minor ? B_MIN : B_MAJ).map((d) => getChord(key, d)).concat([pivot()]);
+  const kC = (key + pick(minor ? [3, 5, 8] : [5, 7, 9])) % 12;
+  const progC = pick(minor ? A_MIN : A_MAJ).slice(0, 3).map((d) => getChord(kC, d)).concat([pivot()]);
+  const kD = (key + pick([2, 10, 4])) % 12;
+  const progD = pick(minor ? B_MIN : B_MAJ).map((d) => getChord(kD, d)).concat([pivot()]);
+  const sub = getChord(key, minor ? 5 : 3);
+
+  let plan;
+  if (lenKey === 'short') {
+    plan = [
+      { s: 'prelude', chords: [home], bars: 2, cb: 2 },
+      { s: 'refrain', chords: progA, bars: 4, cb: 1 },
+      { s: 'away', chords: progB, bars: 4, cb: 1 },
+      { s: 'retv', chords: progA, bars: 4, cb: 1 },
+      { s: 'coda', chords: [home], bars: 1, cb: 1 },
+    ];
+  } else {
+    plan = [
+      { s: 'prelude', chords: [home], bars: 4, cb: 4 },
+      { s: 'refrain', chords: progA, bars: 8, cb: 2 },
+      { s: 'away', chords: progB, bars: 8, cb: 2 },
+      { s: 'ret', chords: progA, bars: 8, cb: 2 },
+      { s: 'far', chords: progC, bars: 8, cb: 2, key: kC },
+    ];
+    if (lenKey === 'long') plan.push(
+      { s: 'ret', chords: progA, bars: 8, cb: 2 },
+      { s: 'further', chords: progD, bars: 8, cb: 2, key: kD });
+    plan.push(
+      { s: 'retv', chords: progA, bars: 8, cb: 2 },
+      { s: 'coda', chords: [home, sub, home], bars: 6, cb: 2 });
+  }
+
+  // motif: a two-bar call and answer, as scale steps
+  const call = [0];
+  for (const s of [2, 3, 4, 5, 6]) if (R() < 0.36) call.push(s);
+  while (call.length < 3) { const s = pick([2, 3, 4, 6]); if (!call.includes(s)) call.push(s); }
+  call.sort((a, b) => a - b);
+  const ans = [8];
+  for (const s of [10, 11, 12, 13]) if (R() < 0.38) ans.push(s);
+  if (ans.length < 2) ans.push(12);
+  ans.sort((a, b) => a - b);
+  const steps = [[0, 1], [1, 3], [-1, 3], [2, 1.4], [-2, 1.4], [3, 0.5], [-3, 0.6], [4, 0.3]];
+  const motif = [];
+  let off = 0;
+  for (const s of [...call, ...ans]) { motif.push({ slot: s, off }); off = clamp(off + pickW(R, steps), -3, 6); }
+  motif[motif.length - 1].off = pick([0, 0, 2]);
+  const d0 = pick([0, 2, 4]);
+
+  const melMidi = (k, o) => {
+    const i = (k <= 6 ? 35 : 28) + d0 + o;
+    let m = 12 + k + 12 * Math.floor(i / 7) + sc[((i % 7) + 7) % 7];
+    while (m < 66) m += 12; while (m > 91) m -= 12;
+    return m;
+  };
+  const snap = (m, pcs) => {
+    for (const d of [0, -1, 1, -2, 2, -3, 3]) if (pcs.has((((m + d) % 12) + 12) % 12)) return m + d;
+    return m;
+  };
+  const droneRoot = 36 + (((key - 36) % 12) + 12) % 12;
+
+  const ev = [];
+  const note = (t, m, v, voiceName, extra) => ev.push(Object.assign({ t: Math.max(0, t), k: 'n', m, v, voice: voiceName }, extra || {}));
+  let t = 0.15;
+  plan.forEach((P, si) => {
+    const S = SECS[P.s];
+    const sk = P.key ?? key;
+    ev.push({ t, k: 's', label: S.label, s: P.s, i: si });
+    if (P.s === 'prelude') ev.push({ t: t + bar * (P.bars >= 4 ? 1 : 0.6), k: 'd', on: true, root: droneRoot });
+    else ev.push({ t, k: 'd', on: S.drone, root: droneRoot });
+    for (let b = 0; b < P.bars; b++) {
+      const tb = t + b * bar;
+      const ch = P.chords[Math.floor(b / P.cb) % P.chords.length];
+      const chordStart = b % P.cb === 0;
+      const lastBar = b === P.bars - 1;
+      if (chordStart) {
+        ev.push({ t: tb, k: 'c', ch });
+        if (P.s === 'prelude') {
+          const n = ch.voicing.length, span = P.bars * bar * 0.55;
+          ch.voicing.forEach((m, i) => note(tb + 0.1 + i * (span / n), m, i === 0 ? 0.6 : 0.5, i === 0 ? 'bass' : 'bloom'));
+        } else {
+          note(tb, ch.voicing[0], 0.55, 'bass');
+          ch.uppers.forEach((m, i) => note(tb + 0.012 + i * 0.045, m, 0.26 + R() * 0.05, 'bloom'));
+        }
+      }
+      // arpeggio
+      let dens = S.arp;
+      if (P.s === 'prelude') dens = lastBar && P.bars > 1 ? 0.3 : 0;
+      if (P.s === 'coda') dens = S.arp * (1 - b / P.bars);
+      if (dens > 0) {
+        const pool = ch.uppers.map((m) => m + S.oct).filter((m) => m <= 94);
+        const n = pool.length;
+        for (let s = 0; s < 8; s++) {
+          if (s === 0 && chordStart) continue;
+          if (R() > dens * (s % 2 ? 0.8 : 1.15)) continue;
+          let idx;
+          if (S.pat === 'up') idx = (s + b * 2) % n;
+          else if (S.pat === 'down') idx = n - 1 - ((s + b * 2) % n);
+          else if (S.pat === 'wave') { const per = Math.max(1, 2 * n - 2); const p = (s + b * 3) % per; idx = p < n ? p : per - p; }
+          else idx = Math.floor(R() * n);
+          note(tb + s * e8 + (R() - 0.5) * 0.014, pool[clamp(idx, 0, n - 1)], 0.19 + R() * 0.12 + (s === 4 ? 0.05 : 0), 'arp');
+        }
+      }
+      // melody, in two-bar blocks
+      if (S.mel !== 'none' && b % 2 === 0) {
+        const block = b / 2;
+        for (const nt of motif) {
+          if (S.mel === 'answer' && (nt.slot < 8 || block % 2 === 1)) continue;
+          if (S.mel === 'call' && (nt.slot >= 8 || b > 0)) continue;
+          const nb = b + Math.floor(nt.slot / 8);
+          if (nb >= P.bars) continue;
+          let o = nt.off;
+          if (S.mel === 'answer') o = -o + 2;
+          if (S.mel === 'seq') o += 2;
+          const chAt = P.chords[Math.floor(nb / P.cb) % P.chords.length];
+          let m = melMidi(chAt.pivot ? key : sk, o);
+          if (nt.slot % 4 === 0 || chAt.pivot) m = snap(m, chAt.pcs);
+          const tn = t + nb * bar + (nt.slot % 8) * e8;
+          const v = 0.5 + R() * 0.14 + (nt.slot === 0 ? 0.08 : 0);
+          note(tn, m, v, 'mel');
+          if (S.mel === 'full') note(tn + 3 * e8, m, v * 0.38, 'mel', { echo: true });
+        }
+      }
+      if (P.s === 'coda' && lastBar) {
+        home.voicing.forEach((m, i) => note(tb + beat * 1.5 + i * e8 * 0.9, m + (i === 0 ? 12 : 0), 0.34, 'bloom'));
+        ev.push({ t: tb + bar * 0.6, k: 'd', on: false, root: droneRoot });
+      }
+    }
+    t += P.bars * bar;
+  });
+  const end = t + 7;
+  ev.push({ t: end, k: 'end' });
+  ev.sort((a, b) => a.t - b.t);
+
+  const names = NAMES.slice();
+  for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
+  return { seed, moodKey, lenKey, M, key, modeName, flats, bpm, ev, dur: end,
+    keyName: (flats ? FLAT : SHARP)[key] + ' ' + MODE_NAME[modeName], names };
+}
+
+// ---------- the sky ----------
+const LO = 36, HI = 96;
+let SKY = null;
+function buildSky(seed) {
+  const R = mulberry32((seed * 2654435761) >>> 0);
+  const stars = [];
+  for (let m = LO; m <= HI; m++) {
+    const pc = m % 12, fi = (pc * 7) % 12;
+    const rn = (m - LO) / (HI - LO);
+    stars[m] = {
+      a: fi / 12 * TAU - TAU / 4 + (R() - 0.5) * 0.26,
+      r: 0.13 + 0.85 * rn + (R() - 0.5) * 0.04,
+      size: 1.1 + (1 - rn) * 1.7 + R() * 0.6,
+      b: 0.32 + R() * 0.36, sp: 0.6 + R() * 1.8, ph: R() * TAU,
+      bk: Math.min(7, Math.floor(rn * 8)),
+    };
+  }
+  const dust = [];
+  for (let i = 0; i < 950; i++) {
+    const big = R() < 0.07;
+    dust.push({ a: R() * TAU, r: Math.sqrt(R()) * 0.5, s: big ? 2.2 : 1 + R() * 0.8, b: big ? 0.35 + R() * 0.4 : 0.1 + R() * R() * 0.55, sp: 0.4 + R() * 2.4, ph: R() * TAU });
+  }
+  SKY = { stars, dust, seed };
+}
+
+function starRGB(t) {
+  const lo = [255, 192, 135], mid = [255, 246, 234], hi = [172, 202, 255];
+  const L = (a, b, u) => a.map((x, i) => Math.round(x + (b[i] - x) * u));
+  return t < 0.5 ? L(lo, mid, t / 0.5) : L(mid, hi, (t - 0.5) / 0.5);
+}
+function sprite(stops) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (const [o, col] of stops) gr.addColorStop(o, col);
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return c;
+}
+const HALO = [];
+for (let b = 0; b < 8; b++) {
+  const c = starRGB(b / 7);
+  HALO.push(sprite([[0, rgba(c, 0.95)], [0.1, rgba(c, 0.5)], [0.35, rgba(c, 0.12)], [1, rgba(c, 0)]]));
+}
+const CORE = sprite([[0, 'rgba(255,255,255,1)'], [0.22, 'rgba(255,255,255,.9)'], [0.55, 'rgba(255,255,255,.18)'], [1, 'rgba(255,255,255,0)']]);
+const SPARK = sprite([[0, 'rgba(255,250,235,1)'], [0.2, 'rgba(255,230,180,.7)'], [1, 'rgba(255,220,160,0)']]);
+
+let bandCv = null;
+function buildBand(col, seed) {
+  const s = 1024; bandCv = document.createElement('canvas'); bandCv.width = bandCv.height = s;
+  const b = bandCv.getContext('2d'), R = mulberry32((seed ^ 0xABCDEF) >>> 0);
+  const yc = (u) => s * 0.5 + Math.sin(u * TAU * 0.8 + 1) * s * 0.1;
+  b.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 1300; i++) {
+    const u = R(), x = u * s, spread = s * 0.075 * (0.6 + 0.4 * Math.sin(u * 9));
+    const y = yc(u) + gauss(R) * spread, r = 3 + R() * R() * 30, a = 0.01 + R() * 0.028;
+    const gr = b.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, rgba(col, a)); gr.addColorStop(1, rgba(col, 0));
+    b.fillStyle = gr; b.fillRect(x - r, y - r, 2 * r, 2 * r);
+  }
+  b.fillStyle = '#e6ecff';
+  for (let i = 0; i < 2600; i++) {
+    const u = R(), x = u * s, y = yc(u) + gauss(R) * s * 0.06;
+    b.globalAlpha = R() * 0.5; b.fillRect(x, y, 1, 1);
+  }
+  b.globalAlpha = 1;
+}
+
+// ---------- state ----------
+const cv = $('#sky'), ctx = cv.getContext('2d');
+const store = (() => { try { return window.localStorage; } catch (e) { return null; } })();
+const load = (k, d) => { try { return (store && store.getItem('cst.' + k)) || d; } catch (e) { return d; } };
+const keep = (k, v) => { try { store && store.setItem('cst.' + k, v); } catch (e) {} };
+
+let moodKey = 'clear';
+let lenKey = 'long';
+let frameKey = 'fill';
+let showText = load('text', '1') === '1';
+let seed = (Math.random() * 4294967296) >>> 0;
+let piece = null, sess = null, state = 'menu', V = null, G = null;
+let recording = false, rec = null, recBlob = null, recExt = 'webm', recUrl = null, recInfo = '';
+
+buildSky(seed);
+function recompose() { piece = compose(seed, moodKey, lenKey); updateMeta(); }
+
+// ---------- audio ----------
+let AC = null, comp = null, outG = null, recDest = null, conv = null, noiseBuf = null;
+function ensureAudio() {
+  if (AC) return;
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  try { AC = new Ctor({ latencyHint: 'playback' }); } catch (e) { AC = new Ctor(); }
+  comp = AC.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.knee.value = 14; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.3;
+  outG = AC.createGain(); outG.gain.value = 0.9;
+  comp.connect(outG); outG.connect(AC.destination);
+  try { recDest = AC.createMediaStreamDestination(); outG.connect(recDest); } catch (e) { recDest = null; }
+  conv = AC.createConvolver();
+  const sr = AC.sampleRate, len = Math.floor(sr * 5.5), buf = AC.createBuffer(2, len, sr), R = mulberry32(77);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) { const x = i / len; d[i] = (R() * 2 - 1) * Math.pow(1 - x, 2) * Math.exp(-x * 2.6) * Math.min(1, i / (sr * 0.015)); }
+  }
+  conv.buffer = buf;
+  const wg = AC.createGain(); wg.gain.value = 0.85; conv.connect(wg); wg.connect(comp);
+  noiseBuf = AC.createBuffer(1, sr * 2, sr);
+  const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = R() * 2 - 1;
+}
+const rotAt = (s, t) => s.rot0 + t * TAU / 720;
+
+function makeSession(p, rot0) {
+  const s = { p, i: 0, q: [], start: AC.currentTime + 0.4, rot0, nodes: [] };
+  s.dry = AC.createGain(); s.dry.connect(comp);
+  s.send = AC.createGain(); s.send.gain.value = p.M.wet; s.send.connect(conv);
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650; lp.Q.value = 0.4;
+  const dg = AC.createGain(); dg.gain.value = 0;
+  const mk = (type, g) => { const o = AC.createOscillator(); o.type = type; const gg = AC.createGain(); gg.gain.value = g; o.connect(gg); gg.connect(lp); o.start(s.start); return o; };
+  const o1 = mk('sine', 1), o2 = mk('triangle', 0.22), o3 = mk('sine', 0.32);
+  const lfo = AC.createOscillator(); lfo.frequency.value = 0.06; const lg = AC.createGain(); lg.gain.value = 180; lfo.connect(lg); lg.connect(lp.frequency); lfo.start(s.start);
+  lp.connect(dg); dg.connect(s.dry); const ds = AC.createGain(); ds.gain.value = 0.35; dg.connect(ds); ds.connect(s.send);
+  s.drone = { dg, o1, o2, o3, lfo };
+  setDrone(s, s.start, p.ev.find((e) => e.k === 'd')?.root ?? 40, 0.01);
+  return s;
+}
+function setDrone(s, when, root, glide) {
+  const d = s.drone;
+  d.o1.frequency.setTargetAtTime(mtof(root), when, glide);
+  d.o2.frequency.setTargetAtTime(mtof(root + 19), when, glide);
+  d.o3.frequency.setTargetAtTime(mtof(root + 12) * 1.0025, when, glide);
+}
+function endSession(s) {
+  if (!s || s.ended) return;
+  s.ended = true;
+  const t = AC.currentTime;
+  for (const g of [s.dry.gain, s.send.gain]) { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 0.25); }
+  const d = s.drone;
+  for (const o of [d.o1, d.o2, d.o3, d.lfo]) { try { o.stop(t + 0.4); } catch (e) {} }
+  setTimeout(() => { try { s.dry.disconnect(); s.send.disconnect(); } catch (e) {} }, 9000);
+}
+function playNote(s, e) {
+  const when = s.start + e.t;
+  const [ratio, index, decay, gain] = s.p.M.tim[e.voice];
+  const f = mtof(e.m);
+  const car = AC.createOscillator(); car.frequency.value = f;
+  const mod = AC.createOscillator(); mod.frequency.value = f * ratio;
+  const mg = AC.createGain(); const dev = index * f * clamp(700 / f, 0.25, 1.5);
+  mg.gain.setValueAtTime(dev, when); mg.gain.setTargetAtTime(dev * 0.06, when + 0.004, decay * 0.11);
+  mod.connect(mg); mg.connect(car.frequency);
+  const g = AC.createGain();
+  const att = e.voice === 'bloom' ? 0.03 : 0.004;
+  const amp = e.v * gain * 0.2 * clamp(Math.pow(440 / f, 0.2), 0.7, 1.4);
+  g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(amp, when + att); g.gain.setTargetAtTime(0, when + att, decay / 5);
+  car.connect(g);
+  let out = g;
+  if (AC.createStereoPanner) {
+    const st = SKY.stars[e.m];
+    const pn = AC.createStereoPanner();
+    pn.pan.value = st ? clamp(Math.cos(st.a + rotAt(s, e.t)) * st.r * 0.85, -0.85, 0.85) : 0;
+    g.connect(pn); out = pn;
+  }
+  out.connect(s.dry); out.connect(s.send);
+  const stop = when + decay + 0.4;
+  car.start(when); mod.start(when); car.stop(stop); mod.stop(stop);
+}
+function swoosh(s, when) {
+  const src = AC.createBufferSource(); src.buffer = noiseBuf;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.6;
+  bp.frequency.setValueAtTime(700, when); bp.frequency.exponentialRampToValueAtTime(4200, when + 1.3);
+  const g = AC.createGain(); g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(0.035, when + 0.35); g.gain.linearRampToValueAtTime(0, when + 1.5);
+  src.connect(bp); bp.connect(g);
+  let out = g;
+  if (AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.setValueAtTime(-0.6, when); pn.pan.linearRampToValueAtTime(0.6, when + 1.4); g.connect(pn); out = pn; }
+  out.connect(s.dry); out.connect(s.send);
+  src.start(when); src.stop(when + 1.6);
+}
+function schedule(s, e) {
+  const when = s.start + e.t;
+  if (e.k === 'n') playNote(s, e);
+  else if (e.k === 'd') {
+    const g = s.drone.dg.gain;
+    g.setTargetAtTime(e.on ? 0.075 : 0, when, e.on ? 1.6 : 1.1);
+    setDrone(s, when, e.root, 0.5);
+  } else if (e.k === 's' && e.i > 0) swoosh(s, when);
+  s.q.push(e);
+}
+function pump() {
+  if (!sess || sess.ended || state !== 'playing' || !AC || AC.state !== 'running') return;
+  const horizon = AC.currentTime - sess.start + 0.3;
+  const ev = sess.p.ev;
+  while (sess.i < ev.length && ev[sess.i].t < horizon) { schedule(sess, ev[sess.i]); sess.i++; }
+}
+setInterval(pump, 25);
+
+// ---------- visual state ----------
+function resetVisual() {
+  V = { notes: [], cur: null, cs: new Map(), nameI: 0, trail: [], lastMel: null, labels: [], rings: [], meteors: [],
+    sec: '', drone: 0, droneT: 0, retT: -99, retName: '' };
+}
+resetVisual();
+const DECAY_V = { arp: 0.85, mel: 1.4, bloom: 2.3, bass: 2.8 };
+function consume(now) {
+  if (!sess) return;
+  const q = sess.q;
+  while (q.length && q[0].t <= now) {
+    const e = q.shift();
+    if (e.k === 'n') {
+      V.notes.push(e);
+      if (e.voice === 'mel' && !e.echo) { if (V.lastMel != null && V.lastMel !== e.m) V.trail.push({ a: V.lastMel, b: e.m, t: e.t }); V.lastMel = e.m; if (V.trail.length > 40) V.trail.shift(); }
+    } else if (e.k === 'c') {
+      if (V.cur) { const ps = V.cs.get(V.cur.id); if (ps) ps.off = e.t; }
+      const ch = e.ch;
+      let st = V.cs.get(ch.id);
+      if (!st) { st = { ch, seen: false, on: 0, off: null, prevOff: null, name: '', edges: mst(ch.voicing) }; V.cs.set(ch.id, st); }
+      const ret = st.seen && st.off != null && (e.t - st.off) > 5;
+      if (!st.seen) { st.seen = true; st.name = piece.names[V.nameI++ % piece.names.length]; }
+      st.prevOff = st.off; st.on = e.t; st.off = null;
+      V.cur = ch;
+      V.labels.push({ st, t: e.t, ret });
+      if (ret) { V.rings.push({ st, t: e.t }); V.retT = e.t; V.retName = st.name; }
+      if (V.labels.length > 6) V.labels.shift();
+    } else if (e.k === 's') {
+      V.sec = e.label;
+      if (e.i > 0) {
+        const R = Math.random, ang = (R() < 0.5 ? -1 : 1) * (0.25 + R() * 0.35);
+        V.meteors.push({ t: e.t, x: 0.15 + R() * 0.5, y: 0.08 + R() * 0.25, dx: Math.cos(ang), dy: Math.abs(Math.sin(ang)) + 0.15 });
+      }
+    } else if (e.k === 'd') V.droneT = e.on ? 1 : 0;
+  }
+}
+function mst(vs) {
+  const P = vs.map((m) => { const s = SKY.stars[m]; return [Math.cos(s.a) * s.r, Math.sin(s.a) * s.r]; });
+  const n = P.length, inT = [true], edges = [];
+  for (let i = 1; i < n; i++) inT[i] = false;
+  for (let k = 1; k < n; k++) {
+    let best = null, bd = Infinity;
+    for (let i = 0; i < n; i++) if (inT[i]) for (let j = 0; j < n; j++) if (!inT[j]) {
+      const d = Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]);
+      if (d < bd) { bd = d; best = [i, j]; }
+    }
+    if (!best) break;
+    inT[best[1]] = true; edges.push([vs[best[0]], vs[best[1]]]);
+  }
+  return edges;
+}
+
+// ---------- layout ----------
+function layout() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let W, H, cw, ch;
+  if (frameKey === 'fill') {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.round(vw * dpr); H = Math.round(vh * dpr); cw = vw; ch = vh;
+  } else {
+    [W, H] = frameKey === 'portrait' ? [1080, 1920] : [1920, 1080];
+    const s = Math.min(vw / W, vh / H); cw = W * s; ch = H * s;
+  }
+  if (cv.width !== W || cv.height !== H || !G) { cv.width = W; cv.height = H; rebuildStatic(); }
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+}
+function rebuildStatic() {
+  const W = cv.width, H = cv.height, portrait = H > W * 1.15;
+  const base = Math.min(W, H), k = base / 1080;
+  let cx = W / 2, cy, R;
+  if (portrait) { R = W * 0.44; cy = H * 0.43; } else { R = H * 0.42; cy = H * 0.5; }
+  const P = MOODS[moodKey].pal;
+  G = { W, H, portrait, base, k, cx, cy, R, D: Math.hypot(W, H), P };
+  G.bg = ctx.createLinearGradient(0, 0, 0, H); G.bg.addColorStop(0, P.bg[0]); G.bg.addColorStop(1, P.bg[1]);
+  if (P.hz) { G.hz = ctx.createRadialGradient(W / 2, H * 1.2, 0, W / 2, H * 1.2, Math.max(W, H) * 0.8); G.hz.addColorStop(0, rgba(P.hz, 0.32)); G.hz.addColorStop(1, rgba(P.hz, 0)); } else G.hz = null;
+  G.vig = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, G.D * 0.62); G.vig.addColorStop(0, 'rgba(0,0,0,0)'); G.vig.addColorStop(1, 'rgba(0,0,0,.55)');
+  buildBand(P.band, seed);
+}
+
+// ---------- drawing ----------
+const SERIF = '"Cormorant Garamond", Georgia, serif', SANS = 'Jost, system-ui, sans-serif';
+const sx = new Float32Array(128), sy = new Float32Array(128), E = new Float32Array(128);
+let lastPt = performance.now() / 1000, idleRot = 0;
+const spaced = (s) => s.split('').join(' ');
+function noteName(m) { return ((piece && piece.flats) ? FLAT : SHARP)[m % 12] + (Math.floor(m / 12) - 1); }
+
+function draw(now, pt, dt) {
+  const { W, H, k, cx, cy, R, D, P, base } = G;
+  const live = !!sess && state !== 'menu';
+  const rot = live ? rotAt(sess, now) : idleRot;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = G.bg; ctx.fillRect(0, 0, W, H);
+  if (G.hz) { ctx.fillStyle = G.hz; ctx.fillRect(0, 0, W, H); }
+
+  // milky band and dust
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot + 0.6); ctx.globalAlpha = 0.6;
+  ctx.drawImage(bandCv, -D / 2, -D / 2, D, D); ctx.restore();
+  ctx.fillStyle = '#dfe6ff';
+  for (const d of SKY.dust) {
+    const a = d.a + rot, x = cx + Math.cos(a) * d.r * D, y = cy + Math.sin(a) * d.r * D;
+    if (x < -4 || y < -4 || x > W + 4 || y > H + 4) continue;
+    ctx.globalAlpha = d.b * (0.6 + 0.4 * Math.sin(pt * d.sp + d.ph));
+    const s = d.s * Math.max(1, k); ctx.fillRect(x, y, s, s);
+  }
+
+  // nebula: follows the drone
+  V.drone += (V.droneT - V.drone) * Math.min(1, dt * 0.7);
+  if (live && V.drone > 0.01) {
+    const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.05);
+    const a = V.drone * (0.22 + 0.05 * Math.sin(pt * 0.5));
+    gr.addColorStop(0, rgba(P.neb, a)); gr.addColorStop(0.45, rgba(P.neb, a * 0.35)); gr.addColorStop(1, rgba(P.neb, 0));
+    ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(cx - R * 1.1, cy - R * 1.1, R * 2.2, R * 2.2);
+  }
+
+  // chart grid
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = 'rgba(220,228,255,1)'; ctx.lineWidth = Math.max(1, k);
+  ctx.globalAlpha = 0.045;
+  for (const f of [0.36, 0.68, 1]) { ctx.beginPath(); ctx.arc(cx, cy, R * f, 0, TAU); ctx.stroke(); }
+  ctx.beginPath();
+  for (let i = 0; i < 12; i++) { const a = i / 12 * TAU - TAU / 4 + rot; ctx.moveTo(cx + Math.cos(a) * R * 0.1, cy + Math.sin(a) * R * 0.1); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); }
+  ctx.stroke();
+  if (showText) {
+    const curPcs = live && V.cur ? V.cur.pcs : null;
+    ctx.font = `400 ${Math.round(base * 0.019)}px ${SERIF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const NM = (piece && piece.flats) ? FLAT : SHARP;
+    for (let pc = 0; pc < 12; pc++) {
+      const a = ((pc * 7) % 12) / 12 * TAU - TAU / 4 + rot;
+      ctx.globalAlpha = curPcs && curPcs.has(pc) ? 0.75 : 0.26;
+      ctx.fillStyle = curPcs && curPcs.has(pc) ? rgba(P.line, 1) : '#c9d2ea';
+      ctx.fillText(NM[pc], cx + Math.cos(a) * R * 1.075, cy + Math.sin(a) * R * 1.075);
+    }
+  }
+
+  // star positions and energies
+  for (let m = LO; m <= HI; m++) { const s = SKY.stars[m], a = s.a + rot; sx[m] = cx + Math.cos(a) * s.r * R; sy[m] = cy + Math.sin(a) * s.r * R; }
+  E.fill(0);
+  if (live) {
+    V.notes = V.notes.filter((n) => now - n.t < 10);
+    for (const n of V.notes) {
+      const age = now - n.t; if (age < 0) continue;
+      const e = n.v * 1.6 * (age < 0.02 ? age / 0.02 : Math.exp(-(age - 0.02) / DECAY_V[n.voice]));
+      if (e > E[n.m]) E[n.m] = e;
+    }
+  }
+
+  // constellations
+  if (live) {
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+    const lw = Math.max(1, 1.5 * k), gap = 9 * k;
+    const ghostOf = (off) => off == null ? 0 : 0.05 + 0.08 * Math.exp(-(now - off) / 30);
+    for (const st of V.cs.values()) {
+      if (!st.seen) continue;
+      const isCur = V.cur && V.cur.id === st.ch.id;
+      if (isCur) {
+        const g0 = ghostOf(st.prevOff);
+        if (g0 > 0) for (const e of st.edges) edge(e, 1, g0, lw, gap, P.line, false);
+        st.edges.forEach((e, i) => { const p = clamp((now - st.on - i * 0.2) / 0.55, 0, 1); if (p > 0) edge(e, p, 0.72, lw, gap, P.line, true); });
+      } else if (st.off != null) {
+        const since = now - st.off, g = ghostOf(st.off);
+        const a = g + (0.72 - g) * Math.exp(-since / 1.3);
+        for (const e of st.edges) edge(e, 1, a, lw, gap, P.line, since < 1.5);
+      }
+    }
+    // melody trail
+    V.trail = V.trail.filter((s) => now - s.t < 6);
+    ctx.strokeStyle = rgba(P.trail, 1); ctx.lineWidth = Math.max(1, 1.3 * k);
+    for (const s of V.trail) {
+      const age = now - s.t; if (age < 0) continue;
+      const p = clamp(age / 0.35, 0, 1), a = 0.6 * Math.exp(-age / 3.2);
+      const x0 = sx[s.a], y0 = sy[s.a], x1 = sx[s.b], y1 = sy[s.b];
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, dx = x1 - x0, dy = y1 - y0;
+      const qx = mx - dy * 0.18, qy = my + dx * 0.18;
+      ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(x0, y0);
+      const N = 14; let hx = x0, hy = y0;
+      for (let i = 1; i <= N; i++) { const u = (i / N) * p, v = 1 - u; hx = v * v * x0 + 2 * v * u * qx + u * u * x1; hy = v * v * y0 + 2 * v * u * qy + u * u * y1; ctx.lineTo(hx, hy); }
+      ctx.stroke();
+      if (p < 1 || age < 0.6) { const ss = 26 * k * (1 - age / 0.9 * 0.6); ctx.globalAlpha = clamp(1 - age / 0.9, 0, 1); ctx.drawImage(SPARK, hx - ss / 2, hy - ss / 2, ss, ss); }
+    }
+  }
+
+  // stars
+  ctx.globalCompositeOperation = 'lighter';
+  for (let m = LO; m <= HI; m++) {
+    const s = SKY.stars[m], x = sx[m], y = sy[m], e = Math.min(E[m], 1.2);
+    const tw = 0.78 + 0.22 * Math.sin(pt * s.sp + s.ph);
+    const hs = (s.size * 7 + e * 62) * k;
+    ctx.globalAlpha = Math.min(1, s.b * tw * 0.5 + e * 0.85);
+    ctx.drawImage(HALO[s.bk], x - hs / 2, y - hs / 2, hs, hs);
+    const cs = (s.size * 2.6 + e * 9) * k;
+    ctx.globalAlpha = Math.min(1, s.b * tw + e);
+    ctx.drawImage(CORE, x - cs / 2, y - cs / 2, cs, cs);
+    if (e > 0.3) {
+      const L = e * 46 * k; ctx.globalAlpha = (e - 0.3) * 0.5; ctx.strokeStyle = '#fff6e8'; ctx.lineWidth = Math.max(1, k);
+      ctx.beginPath(); ctx.moveTo(x - L, y); ctx.lineTo(x + L, y); ctx.moveTo(x, y - L); ctx.lineTo(x, y + L); ctx.stroke();
+    }
+  }
+  if (live && showText) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = `400 ${Math.round(base * 0.0145)}px ${SANS}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#e9eefc';
+    for (let m = LO; m <= HI; m++) {
+      const e = E[m]; if (e < 0.32) continue;
+      ctx.globalAlpha = Math.min(0.8, (e - 0.32) * 1.6);
+      ctx.fillText(noteName(m), sx[m] + 11 * k, sy[m] - 11 * k);
+    }
+  }
+
+  // meteors
+  ctx.globalCompositeOperation = 'lighter';
+  V.meteors = V.meteors.filter((mt) => now - mt.t < 1.5);
+  for (const mt of V.meteors) {
+    const age = now - mt.t; if (age < 0) continue;
+    const p = age / 1.4, speed = base * 0.75;
+    const hx = mt.x * W + mt.dx * speed * age, hy = mt.y * H + mt.dy * speed * age;
+    const tx = hx - mt.dx * base * 0.16, ty = hy - mt.dy * base * 0.16;
+    const gr = ctx.createLinearGradient(tx, ty, hx, hy); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,250,235,1)');
+    ctx.globalAlpha = Math.sin(Math.PI * clamp(p, 0, 1)) * 0.8; ctx.strokeStyle = gr; ctx.lineWidth = Math.max(1, 2 * k);
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+  }
+
+  // return rings and constellation names
+  if (live) {
+    V.rings = V.rings.filter((r) => now - r.t < 2.4);
+    for (const r of V.rings) {
+      const age = now - r.t; if (age < 0) continue;
+      const [x, y] = centroid(r.st.ch.voicing);
+      ctx.globalAlpha = 0.45 * (1 - age / 2.4); ctx.strokeStyle = rgba(P.line, 1); ctx.lineWidth = Math.max(1, 1.4 * k);
+      ctx.beginPath(); ctx.arc(x, y, R * (0.06 + age * 0.12), 0, TAU); ctx.stroke();
+    }
+    if (showText) {
+      ctx.globalCompositeOperation = 'source-over'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      V.labels = V.labels.filter((l) => now - l.t < 4.6);
+      for (const l of V.labels) {
+        const age = now - l.t; if (age < 0) continue;
+        const env = age < 0.7 ? age / 0.7 : age > 3.4 ? Math.max(0, 1 - (age - 3.4) / 1.2) : 1;
+        let [x, y] = centroid(l.st.ch.voicing);
+        let dx = x - cx, dy = y - cy; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+        x = clamp(x + dx * R * 0.2, base * 0.12, W - base * 0.12); y = clamp(y + dy * R * 0.2, base * 0.1, H - base * 0.1);
+        ctx.globalAlpha = env * 0.92; ctx.fillStyle = rgba(P.line, 1);
+        ctx.font = `italic 400 ${Math.round(base * (l.ret ? 0.036 : 0.03))}px ${SERIF}`;
+        ctx.fillText(l.st.name, x, y);
+        if (l.ret) { ctx.globalAlpha = env * 0.55; ctx.font = `500 ${Math.round(base * 0.013)}px ${SANS}`; ctx.fillText(spaced('RETURNS'), x, y + base * 0.032); }
+      }
+    }
+  }
+
+  // vignette
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = G.vig; ctx.fillRect(0, 0, W, H);
+
+  if (live && showText) hud(now);
+}
+function edge(e, p, alpha, lw, gap, col, glow) {
+  let x0 = sx[e[0]], y0 = sy[e[0]], x1 = sx[e[1]], y1 = sy[e[1]];
+  const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+  if (L < gap * 2.5) return;
+  const ux = dx / L, uy = dy / L;
+  x0 += ux * gap; y0 += uy * gap;
+  const len = (L - 2 * gap) * p, xe = x0 + ux * len, ye = y0 + uy * len;
+  ctx.strokeStyle = rgba(col, 1);
+  if (glow) { ctx.globalAlpha = alpha * 0.14; ctx.lineWidth = lw * 5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(xe, ye); ctx.stroke(); }
+  ctx.globalAlpha = alpha; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(xe, ye); ctx.stroke();
+}
+function centroid(vs) { let x = 0, y = 0; for (const m of vs) { x += sx[m]; y += sy[m]; } return [x / vs.length, y / vs.length]; }
+
+function hud(now) {
+  const { W, H, base, portrait, P } = G;
+  const m = base * 0.055;
+  const st = V.cur ? V.cs.get(V.cur.id) : null;
+  const retA = clamp(1 - (now - V.retT - 3) / 1.5, 0, 1) * clamp((now - V.retT) / 0.6, 0, 1);
+  const titleF = `500 ${Math.round(base * 0.018)}px ${SANS}`;
+  const moodF = `italic 400 ${Math.round(base * 0.027)}px ${SERIF}`;
+  const nameF = `italic 400 ${Math.round(base * 0.042)}px ${SERIF}`;
+  const smallF = `400 ${Math.round(base * 0.017)}px ${SANS}`;
+  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#eef1fa';
+  const timeTxt = fmt(now) + ' / ' + fmt(piece.dur);
+  const chordTxt = st ? st.ch.sym + '   ·   ' + [...new Set(st.ch.voicing.map((x) => ((piece.flats ? FLAT : SHARP)[x % 12])))].join(' ') : '';
+  if (portrait) {
+    ctx.textAlign = 'center';
+    ctx.font = titleF; ctx.globalAlpha = 0.78; ctx.fillText(spaced('CONSTELLATIONS'), W / 2, H * 0.062);
+    ctx.font = moodF; ctx.globalAlpha = 0.6; ctx.fillText(piece.M.label + '  ·  ' + piece.keyName, W / 2, H * 0.088);
+    ctx.font = smallF; ctx.globalAlpha = 0.5; ctx.fillText(V.sec + '   ' + timeTxt, W / 2, H * 0.111);
+    if (st) {
+      ctx.font = nameF; ctx.globalAlpha = 0.9; ctx.fillStyle = rgba(P.line, 1); ctx.fillText(st.name, W / 2, H * 0.755);
+      ctx.font = smallF; ctx.globalAlpha = 0.6; ctx.fillStyle = '#eef1fa'; ctx.fillText(chordTxt, W / 2, H * 0.785);
+      if (retA > 0) { ctx.globalAlpha = retA * 0.6; ctx.fillText(spaced('RETURNS'), W / 2, H * 0.727); }
+    }
+  } else {
+    ctx.textAlign = 'left';
+    ctx.font = titleF; ctx.globalAlpha = 0.78; ctx.fillText(spaced('CONSTELLATIONS'), m, m + base * 0.012);
+    ctx.font = moodF; ctx.globalAlpha = 0.6; ctx.fillText(piece.M.label + '  ·  ' + piece.keyName, m, m + base * 0.05);
+    if (st) {
+      ctx.font = nameF; ctx.globalAlpha = 0.9; ctx.fillStyle = rgba(P.line, 1); ctx.fillText(st.name, m, H - m - base * 0.034);
+      ctx.font = smallF; ctx.globalAlpha = 0.6; ctx.fillStyle = '#eef1fa'; ctx.fillText(chordTxt, m, H - m);
+      if (retA > 0) { ctx.globalAlpha = retA * 0.6; ctx.fillText(spaced('RETURNS'), m, H - m - base * 0.088); }
+    }
+    ctx.textAlign = 'right';
+    ctx.font = moodF; ctx.globalAlpha = 0.7; ctx.fillStyle = '#eef1fa'; ctx.fillText(V.sec, W - m, H - m - base * 0.034);
+    ctx.font = smallF; ctx.globalAlpha = 0.5; ctx.fillText(timeTxt, W - m, H - m);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- main loop ----------
+function loop() {
+  requestAnimationFrame(loop);
+  const pt = performance.now() / 1000, dt = Math.min(0.1, pt - lastPt); lastPt = pt;
+  if (!sess || state === 'menu') idleRot += dt * TAU / 1400;
+  let now = 0;
+  if (sess && AC) { now = Math.max(0, AC.currentTime - sess.start); consume(now); }
+  draw(now, pt, dt);
+  if (sess && state === 'playing' && now >= piece.dur) {
+    if (recording) finishRecording();
+    else { autoNext(); }
+  }
+  if (recording) $('#recTime').textContent = 'Recording  ' + fmt(now) + ' / ' + fmt(piece.dur);
+}
+
+// ---------- controls ----------
+function autoNext() { seed = (Math.random() * 4294967296) >>> 0; if (typeof buildSky === "function") { buildSky(seed); rebuildStatic(); } recompose(); startPiece(); }
+function startPiece() {
+  ensureAudio();
+  if (AC.state !== 'running') AC.resume().catch(() => {});
+  if (sess) endSession(sess);
+  recompose();
+  resetVisual();
+  sess = makeSession(piece, idleRot);
+  state = 'playing';
+  ui();
+}
+function togglePause() {
+  if (!sess || recording) return;
+  if (state === 'ended') { startPiece(); return; }
+  if (state === 'playing') { state = 'paused'; AC.suspend().catch(() => {}); }
+  else if (state === 'paused') { state = 'playing'; AC.resume().catch(() => {}); }
+  ui();
+}
+function toMenu() {
+  if (recording) return;
+  if (sess) endSession(sess);
+  sess = null; state = 'menu'; resetVisual();
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+  ui();
+}
+const PLAY_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.2v11.6L13.6 8z" fill="currentColor"/></svg>';
+const PAUSE_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h2.8v11H4zM9.2 2.5H12v11H9.2z" fill="currentColor"/></svg>';
+function ui() {
+  $('#menu').classList.toggle('hide', state !== 'menu');
+  $('#bar').classList.toggle('hide', state === 'menu' || recording);
+  $('#recPill').classList.toggle('hide', !recording);
+  const pp = $('#pp');
+  pp.innerHTML = state === 'playing' ? PAUSE_SVG : PLAY_SVG;
+  pp.setAttribute('aria-label', state === 'playing' ? 'Pause' : 'Play');
+  $('#frameBtn').textContent = FRAMES[frameKey];
+  $('#textBtn').textContent = showText ? 'Text on' : 'Text off';
+  wake();
+}
+let idleTimer = 0;
+function wake() {
+  $('#bar').classList.remove('away'); document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  if (state === 'playing') idleTimer = setTimeout(() => { if (state === 'playing') { $('#bar').classList.add('away'); document.body.classList.add('idle'); } }, 2600);
+}
+['pointermove', 'pointerdown', 'keydown'].forEach((ev) => window.addEventListener(ev, wake, { passive: true }));
+
+function seg(el, items, get, set) {
+  el.innerHTML = '';
+  for (const [k, label] of items) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.dataset.k = k;
+    b.addEventListener('click', () => { set(k); paint(); });
+    el.appendChild(b);
+  }
+  const paint = () => el.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === get())));
+  paint();
+  return paint;
+}
+function setMood(k) { moodKey = k; keep('mood', k); $('#moodNote').textContent = MOODS[k].note; rebuildStatic(); recompose(); }
+function setLen(k) { lenKey = k; keep('len', k); recompose(); }
+function setFrame(k) { frameKey = k; keep('frame', k); layout(); ui(); }
+const paintFrameMenu = seg($('#frameSeg'), Object.entries(FRAMES), () => frameKey, setFrame);
+seg($('#moodSeg'), Object.entries(MOODS).map(([k, m]) => [k, m.label]), () => moodKey, setMood);
+const paintLenMenu = seg($('#lenSeg'), Object.entries(LENGTHS).map(([k, l]) => [k, l.label]), () => lenKey, setLen);
+$('#moodNote').textContent = MOODS[moodKey].note;
+
+function updateMeta() {
+  if (!piece) return;
+  $('#meta').textContent = 'Sky ' + hex(seed) + '  ·  ' + piece.keyName + '  ·  ' + fmt(piece.dur);
+}
+function newSky() {
+  seed = (Math.random() * 4294967296) >>> 0;
+  buildSky(seed); rebuildStatic(); recompose();
+  if (state !== 'menu') startPiece();
+}
+
+$('#play').addEventListener('click', startPiece);
+$('#newSky').addEventListener('click', newSky);
+$('#newBar').addEventListener('click', newSky);
+$('#pp').addEventListener('click', togglePause);
+$('#restart').addEventListener('click', startPiece);
+$('#menuBtn').addEventListener('click', toMenu);
+$('#frameBtn').addEventListener('click', () => { const ks = Object.keys(FRAMES); setFrame(ks[(ks.indexOf(frameKey) + 1) % ks.length]); paintFrameMenu(); });
+$('#textBtn').addEventListener('click', () => { showText = !showText; keep('text', showText ? '1' : '0'); ui(); });
+$('#fs').addEventListener('click', () => {
+  try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => toast('Full screen isn’t available here')); }
+  catch (e) { toast('Full screen isn’t available here'); }
+});
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && state !== 'menu' && !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); togglePause(); }
+});
+window.addEventListener('resize', layout);
+
+let toastT = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); }
+
+// ---------- recording ----------
+let recFrame = 'landscape', recLen = 'full';
+function recNote() { $('#recNote').textContent = (recFrame === 'portrait' ? '1080 × 1920, for Shorts' : '1920 × 1080, for full videos') + '  ·  ' + LENGTHS[recLen].label.split('·')[1].trim(); }
+const paintRecFrame = seg($('#recFrameSeg'), [['landscape', 'Full video · 16:9'], ['portrait', 'Short · 9:16']], () => recFrame, (k) => { recFrame = k; if (k === 'portrait' && recLen !== 'short') { recLen = 'short'; paintRecLen(); } recNote(); });
+const paintRecLen = seg($('#recLenSeg'), Object.entries(LENGTHS).map(([k, l]) => [k, l.label.split(' · ')[0]]), () => recLen, (k) => { recLen = k; recNote(); });
+function openRec() {
+  if (recording) return;
+  if (!window.MediaRecorder || !cv.captureStream) { toast('This browser can’t record video. Try Chrome, Edge or Safari on a computer.'); return; }
+  recFrame = frameKey === 'portrait' || lenKey === 'short' ? 'portrait' : 'landscape';
+  recLen = lenKey;
+  paintRecFrame(); paintRecLen(); recNote();
+  if (state === 'playing') togglePause();
+  $('#recCard').classList.remove('hide');
+}
+$('#recOpen').addEventListener('click', openRec);
+$('#recBar').addEventListener('click', openRec);
+$('#recCancel').addEventListener('click', () => $('#recCard').classList.add('hide'));
+function pickMime() {
+  const c = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  for (const m of c) { try { if (MediaRecorder.isTypeSupported(m)) return m; } catch (e) {} }
+  return '';
+}
+$('#recGo').addEventListener('click', () => {
+  $('#recCard').classList.add('hide');
+  ensureAudio();
+  if (AC.state !== 'running') AC.resume().catch(() => {});
+  if (!recDest) { toast('Recording isn’t available in this browser.'); return; }
+  frameKey = recFrame; paintFrameMenu(); layout();
+  lenKey = recLen; paintLenMenu(); keep('len', lenKey);
+  startPiece();
+  const mime = pickMime();
+  recExt = mime.includes('mp4') ? 'mp4' : 'webm';
+  const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+  const chunks = [];
+  try { rec = new MediaRecorder(stream, Object.assign({ videoBitsPerSecond: 12000000, audioBitsPerSecond: 192000 }, mime ? { mimeType: mime } : {})); }
+  catch (e) { toast('Recording couldn’t start in this browser.'); return; }
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const tracks = stream.getTracks(); tracks.forEach((t) => { if (t.kind === 'video') t.stop(); });
+    if (rec && rec._cancelled) return;
+    recBlob = new Blob(chunks, { type: mime || 'video/webm' });
+    if (recUrl) URL.revokeObjectURL(recUrl);
+    recUrl = URL.createObjectURL(recBlob);
+    $('#preview').src = recUrl;
+    recInfo = `${cv.width} × ${cv.height}  ·  ${fmt(piece.dur)}  ·  ${recExt.toUpperCase()}  ·  ${(recBlob.size / 1048576).toFixed(1)} MB`;
+    $('#doneMeta').textContent = recInfo;
+    $('#doneCard').classList.remove('hide');
+  };
+  rec.start(1000);
+  recording = true; ui();
+});
+function finishRecording() {
+  recording = false; state = 'ended';
+  try { rec.stop(); } catch (e) {}
+  ui();
+}
+$('#recStop').addEventListener('click', () => {
+  if (!recording) return;
+  recording = false; rec._cancelled = true;
+  try { rec.stop(); } catch (e) {}
+  endSession(sess); state = 'ended'; ui(); toast('Recording cancelled');
+});
+let dlNs;
+async function getDL() {
+  if (dlNs !== undefined) return dlNs;
+  try { dlNs = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('downloads') : null; } catch (e) { dlNs = null; }
+  return dlNs;
+}
+getDL();
+$('#save').addEventListener('click', async () => {
+  if (!recBlob) return;
+  const dl = await getDL();
+  if (!dl) { toast('Saving isn’t available in this view. Open this page on claude.ai to save it.'); return; }
+  const name = `constellations-${piece.moodKey}-${recFrame === 'portrait' ? 'short' : 'video'}-${hex(seed)}.${recExt}`;
+  try { await dl.save({ filename: name, data: recBlob }); toast('Saved'); }
+  catch (err) {
+    const c = err && err.code;
+    if (c === 'declined') toast('Not saved');
+    else if (c === 'rate_limited') toast('A save is already waiting. Try again in a moment.');
+    else if (c === 'too_large') toast('That file is too large to save here.');
+    else toast('Saving isn’t available here.');
+  }
+});
+$('#discard').addEventListener('click', () => { $('#doneCard').classList.add('hide'); try { $('#preview').pause(); } catch (e) {} });
+
+// ---------- start ----------
+layout(); recompose(); ui();
+const go = () => requestAnimationFrame(loop);
+if (document.fonts && document.fonts.load) {
+  Promise.race([Promise.all([document.fonts.load(`italic 40px "Cormorant Garamond"`), document.fonts.load(`500 20px Jost`)]), new Promise((r) => setTimeout(r, 1500))]).then(go, go);
+} else go();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en" data-home="tl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>The Nursery of Stars</title>
+<link rel="stylesheet" href="../../fonts/fonts.css">
+<script src="../../pieces.js"></script>
+<script src="../../shared/host.js"></script>
+<style>
+/* VOICE: hushed, scholarly, a Victorian astronomy plate come to life
+   IDEA: an engraved planisphere where the twelve notes sit around the rim like hour marks; each sounding note is a stippled nebula, each resolution a newly catalogued star
+   PICTURE: the whole screen is the plate — aged paper margin, ruled border, chart circle, legend box, figure caption
+   COLOUR and TYPE: three plates from the references (celadon chart, black moon plate, navy and gilt); IM Fell English for the engraved lettering
+   LAYOUT: chart centred under the title; caption and legend bottom corners, stacked beneath on a phone; controls float at the bottom and fade */
+:root{--paper:#e7d8b6;--bar:rgba(20,19,17,.88);--barInk:#efe4c9}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--paper);overflow:hidden;font:16px/1.45 "IM Fell English",Georgia,serif;-webkit-tap-highlight-color:transparent}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#ui{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:center;padding:0 12px;transition:opacity 1.6s ease;pointer-events:none}
+body.idle #ui{opacity:0}body.idle{cursor:none}
+#bar{pointer-events:auto;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:4px 8px;background:var(--bar);color:var(--barInk);border:1px solid var(--barInk);outline:1px solid var(--bar);border-radius:4px;padding:4px 8px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+button{font:inherit;color:inherit;background:none;border:0;min-height:44px;min-width:44px;padding:0 10px;border-radius:3px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+#play{display:grid;place-items:center;padding:0}#play svg{width:18px;height:18px;fill:currentColor}
+.seg{display:flex;gap:1px;align-items:center}.seg button{font-size:15px;font-style:italic;opacity:.6}.seg button[aria-pressed=true]{opacity:1;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:1px}
+.sep{width:1px;align-self:stretch;margin:8px 2px;background:currentColor;opacity:.3}
+label.vol{display:flex;align-items:center;gap:6px;font-style:italic;font-size:15px;padding:0 6px}
+input[type=range]{width:96px;height:44px;accent-color:var(--barInk)}
+#start{position:fixed;inset:0;display:grid;place-items:center;padding:24px;transition:opacity 2s ease;background:rgba(0,0,0,.18)}
+#start.gone{opacity:0;pointer-events:none}
+#card{max-width:440px;text-align:center;background:var(--bar);color:var(--barInk);border:1px solid var(--barInk);outline:1px solid var(--barInk);outline-offset:4px;padding:30px 28px 24px}
+#card h2{font:400 clamp(28px,7vw,40px)/1.05 "IM Fell English SC",Georgia,serif;margin:0 0 4px;letter-spacing:.04em;text-wrap:balance}
+#card .fig{font-style:italic;opacity:.75;margin:0 0 14px}
+#card p{font-size:17px;margin:0 auto 22px;text-wrap:balance}
+#begin{border:1px solid currentColor;padding:0 34px;font:400 18px "IM Fell English SC",Georgia,serif;letter-spacing:.08em;min-height:48px}
+#card small{display:block;margin-top:14px;font-style:italic;opacity:.7;font-size:14px}
+#sound{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);background:var(--bar);color:var(--barInk);border:1px solid var(--barInk);padding:0 26px;font:400 18px "IM Fell English SC",Georgia,serif;letter-spacing:.06em;min-height:50px;z-index:5}
+#sound[hidden],#msg[hidden]{display:none}
+#msg{position:fixed;left:12px;right:12px;top:12px;background:#5a1d14;color:#fff;font:14px system-ui,sans-serif;padding:8px 12px;border-radius:4px;z-index:6}
+@media(max-width:600px){input[type=range]{width:70px}.seg button{padding:0 7px;font-size:14px}}
+@media(prefers-reduced-motion:reduce){#ui,#start{transition:none}}
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html.in-app #fs{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="fx"></canvas>
+<div id="ui"><div id="bar">
+  <button id="play" aria-label="Pause"><svg viewBox="0 0 20 20" id="ico"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg></button>
+  <span class="sep"></span>
+  <div class="seg" role="group" aria-label="Pace" id="pace">
+    <button data-p="0.6" aria-pressed="false">Fast</button><button data-p="1" aria-pressed="true">Normal</button><button data-p="1.6" aria-pressed="false">Slow</button>
+  </div>
+  <span class="sep"></span>
+  <label class="vol">Vol. <input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"></label>
+</div></div>
+<button id="sound" hidden>Tap to turn the sound on</button>
+<div id="msg" hidden></div>
+<div id="start"><div id="card">
+  <h2>The Nursery of Stars</h2>
+  <div class="fig">A chart of harmony, drawn one note at a time</div>
+  <p>Each sounding note is a single star, placed by its name on the rim and drawn inward by its height. One drifts at a time. Whenever the chord comes to rest, its stars are joined into a new constellation with a name of its own, and a newborn star is entered in the catalogue.</p>
+  <button id="begin">Begin</button>
+  <small>Best with headphones</small>
+</div></div>
+<script>
+{
+const $=id=>document.getElementById(id);
+const bg=$('bg'),fx=$('fx'),bctx=bg.getContext('2d'),ctx=fx.getContext('2d');
+const NAMES=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const R=Math.random,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rr=(a,b)=>a+R()*(b-a),TAU=Math.PI*2;
+const gauss=()=>(R()+R()+R()-1.5)*1.15;
+const shortest=d=>((d+Math.PI)%TAU+TAU)%TAU-Math.PI;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const THEMES={
+  celadon:{mw:.2,lit:'#f2df9a',dark:'#93aaa3',marg:'#5b4a33',paper:'#efe4c8',stain:'125,88,36',plate:'#d2e5db',sky:'#b3d6cb',band:'#f4ebd4',ink:'#1e2729',wash:'252,249,238',washA:.6,dotA:[.8,.5,.28],accent:'205,150,45',grain:'95,72,40',pgrain:'40,70,60',bar:'rgba(244,235,212,.92)',barInk:'#1e2729'},
+  night:{mw:.09,lit:'#efe4c9',dark:'#141311',marg:'#5b4a33',paper:'#e7d8b6',stain:'125,88,36',plate:'#141311',sky:'#181715',band:'#141311',ink:'#efe4c9',wash:'239,228,201',washA:.14,dotA:[.9,.58,.32],accent:'236,200,120',grain:'95,72,40',pgrain:'239,228,201',bar:'rgba(20,19,17,.9)',barInk:'#efe4c9'},
+  gilt:{mw:.08,lit:'#dfb15a',dark:'#0e1630',marg:'#c9a46a',paper:'#2b1f12',stain:'205,140,60',plate:'#0e1630',sky:'#121c3c',band:'#0e1630',ink:'#dfb15a',wash:'223,177,90',washA:.13,dotA:[.92,.6,.32],accent:'248,218,150',grain:'205,150,80',pgrain:'223,177,90',bar:'rgba(14,22,48,.92)',barInk:'#dfb15a'}};
+let themeName='gilt';
+let T=THEMES[themeName],WASH,WASHA;
+function washSprite(rgb){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,`rgba(${rgb},1)`);gr.addColorStop(.45,`rgba(${rgb},.45)`);gr.addColorStop(1,`rgba(${rgb},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return c;}
+
+/* ---------- layout ---------- */
+let W=0,H=0,DPR=1,CX=0,CY=0,RR=1,RB=1,ss=1;const L={};const PL={};
+const polar=(a,r)=>[CX+r*Math.sin(a),CY-r*Math.cos(a)];
+const angOf=pc=>((pc*7)%12)/12*TAU;
+const radOf=m=>.8-clamp((m-34)/48,0,1)*.6;
+function layout(){const m=Math.max(10,Math.min(W,H)*.03);Object.assign(PL,{x:m,y:m,w:W-2*m,h:H-2*m});
+  const portrait=H>W*1.15,s=clamp(Math.min(PL.w,PL.h*.8)/620,.62,1.5);L.s=s;L.portrait=portrait;
+  L.ts=clamp(PL.w*.058,21,46);L.titleY=PL.y+L.ts*1.3+8;L.subY=L.titleY+L.ts*.7;
+  const top=L.subY+16*s,ls=clamp(s,.85,1.5);L.ls=ls;L.legW=196*ls;L.legH=104*ls;
+  if(portrait){const capH=62,gap=22,bottom=PL.y+PL.h-24,avail=bottom-top-capH-L.legH-gap*2,D=Math.min(PL.w*.92,avail);RB=D/2;
+    const block=D+gap+capH+L.legH,y0=top+Math.max(0,(bottom-top-block)*.42);
+    CX=PL.x+PL.w/2;CY=y0+RB;L.capX=CX;L.capY=CY+RB+gap+16;L.capAlign='center';L.legX=CX-L.legW/2;L.legY=L.capY+capH-16;}
+  else{const av=PL.y+PL.h-top-30*s,D=Math.min(PL.w*.9,av);RB=D/2;CX=PL.x+PL.w/2;CY=top+av/2;
+    L.capX=PL.x+24*s;L.capY=PL.y+PL.h-46*s;L.capAlign='left';L.legX=PL.x+PL.w-L.legW-20*s;L.legY=PL.y+PL.h-L.legH-20*s;}
+  RR=RB*.89;ss=clamp(RR/270,.75,1.6);}
+
+/* ---------- the static engraving ---------- */
+function grain(c,x,y,w,h,rgb,n,sr,a){c.fillStyle=`rgba(${rgb},${a})`;c.beginPath();for(let i=0;i<n;i++){const d=sr()*1.3+.3;c.rect(x+sr()*w,y+sr()*h,d,d);}c.fill();}
+function circ(c,r,dash){c.setLineDash(dash||[]);c.beginPath();c.arc(CX,CY,r,0,TAU);c.stroke();c.setLineDash([]);}
+const MAG=[0,4.4,3.3,2.5,1.8,1.25];
+
+function gaussS(sr){return (sr()+sr()+sr()-1.5)*1.15;}
+function moon(c,t,x,y,r,p){c.fillStyle=t.dark;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();
+  c.save();c.translate(x,y);if(p>.5){c.scale(-1,1);p=1-p;}const k=Math.cos(p*TAU);c.fillStyle=t.lit;c.beginPath();c.arc(0,0,r,-Math.PI/2,Math.PI/2,false);
+  c.ellipse(0,0,Math.max(.01,r*Math.abs(k)),r,0,Math.PI/2,-Math.PI/2,k>0);c.fill();c.restore();
+  c.strokeStyle=t.ink;c.lineWidth=.8;c.beginPath();c.arc(x,y,r,0,TAU);c.stroke();}
+function saturn(c,t,x,y,r,tilt){const rx=r*2.3,ry=rx*tilt;c.strokeStyle=t.ink;c.lineWidth=.9;
+  c.beginPath();c.ellipse(x,y,rx,Math.max(.5,ry),0,Math.PI,TAU);c.stroke();c.beginPath();c.ellipse(x,y,rx*.8,Math.max(.4,ry*.8),0,Math.PI,TAU);c.stroke();
+  c.fillStyle=t.lit;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(x,y,rx,Math.max(.5,ry),0,0,Math.PI);c.stroke();c.beginPath();c.ellipse(x,y,rx*.8,Math.max(.4,ry*.8),0,0,Math.PI);c.stroke();}
+function figCap(c,t,x,y,n,txt,f){c.fillStyle=t.ink;c.globalAlpha=.9;c.textBaseline='alphabetic';c.textAlign='center';c.font=`${f}px "IM Fell English SC", Georgia, serif`;
+  const a=`Fig. ${n}. `;const aw=c.measureText(a).width;c.font=`italic ${f}px "IM Fell English", Georgia, serif`;const bw=c.measureText(txt).width;
+  c.textAlign='left';c.font=`${f}px "IM Fell English SC", Georgia, serif`;c.fillText(a,x-(aw+bw)/2,y);c.font=`italic ${f}px "IM Fell English", Georgia, serif`;c.fillText(txt,x-(aw+bw)/2+aw,y);c.globalAlpha=1;}
+function sideFigures(c,t){const s=L.ls,f=Math.max(11,12.5*s);
+  if(!L.portrait){const side=CX-RB-PL.x-14;if(side<150)return;
+    /* left: phases of the moon about the earth */
+    const lx=PL.x+14+side/2,ly=CY-20*s,R0=Math.min(side*.32,78*s),mr=Math.max(5,R0*.17);
+    c.strokeStyle=t.ink;c.lineWidth=.7;c.setLineDash([1.5,3.5]);c.beginPath();c.arc(lx,ly,R0,0,TAU);c.stroke();c.setLineDash([]);
+    for(let k=0;k<8;k++){const a=-Math.PI/2+k/8*TAU;moon(c,t,lx+Math.cos(a)*R0,ly+Math.sin(a)*R0,mr,k/8);}
+    c.fillStyle=t.lit;c.beginPath();c.arc(lx,ly,mr*1.5,0,TAU);c.fill();c.strokeStyle=t.ink;c.stroke();
+    c.lineWidth=.5;for(let k=-1;k<=1;k++){c.beginPath();c.ellipse(lx,ly,mr*1.5*Math.abs(k*.55),mr*1.5,0,0,TAU);c.stroke();}c.beginPath();c.moveTo(lx-mr*1.5,ly);c.lineTo(lx+mr*1.5,ly);c.stroke();
+    c.font=`italic ${Math.round(f*.8)}px "IM Fell English", Georgia, serif`;c.fillStyle=t.ink;c.textAlign='center';c.textBaseline='middle';c.globalAlpha=.75;
+    c.fillText('New',lx,ly-R0-mr-9*s);c.fillText('Full',lx,ly+R0+mr+10*s);c.globalAlpha=1;
+    figCap(c,t,lx,ly+R0+mr+34*s,2,'Phases of the Moon.',f);
+    /* right: the aspects of Saturn's ring */
+    const rx=CX+RB+14+side/2,top=L.titleY+40*s,bottom=L.legY-26*s,n=4,step=(bottom-top-30*s)/n;if(step<34*s)return;
+    const sr0=Math.min(step*.22,side*.1,14*s);
+    for(let k=0;k<n;k++)saturn(c,t,rx,top+step*(k+.5),sr0,[.42,.24,.08,.3][k]);
+    figCap(c,t,rx,top+step*n+16*s,3,'Aspects of Saturn.',f);}
+  else{const y0=L.legY+L.legH+26*s,avail=PL.y+PL.h-24-y0;if(avail<60)return;const n=8,gap=Math.min((PL.w-60)/n,44),mr=Math.min(gap*.32,13),x0=CX-gap*(n-1)/2,y=y0+mr+4;
+    for(let k=0;k<n;k++)moon(c,t,x0+k*gap,y,mr,k/8);figCap(c,t,CX,y+mr+22,2,'Phases of the Moon.',Math.max(12,13*s));}}
+function paintStatic(){const c=bctx,t=T;let seed=11;const sr=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  c.fillStyle=t.paper;c.fillRect(0,0,W,H);
+  for(let i=0;i<10;i++){const x=sr()*W,y=sr()<.5?sr()*H*.3:H-sr()*H*.3,r=(50+sr()*170)*(Math.min(W,H)/700+.4),g=c.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,`rgba(${t.stain},${.05+sr()*.09})`);g.addColorStop(1,`rgba(${t.stain},0)`);c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);}
+  grain(c,0,0,W,H,t.grain,W*H/70,sr,.1);
+  c.fillStyle=t.plate;c.fillRect(PL.x,PL.y,PL.w,PL.h);grain(c,PL.x,PL.y,PL.w,PL.h,t.pgrain,PL.w*PL.h/110,sr,.05);
+  c.strokeStyle=t.ink;c.fillStyle=t.ink;c.lineWidth=2.2;c.strokeRect(PL.x+7,PL.y+7,PL.w-14,PL.h-14);c.lineWidth=.7;c.strokeRect(PL.x+11.5,PL.y+11.5,PL.w-23,PL.h-23);
+  /* title */
+  c.textAlign='center';c.textBaseline='alphabetic';if('letterSpacing' in c)c.letterSpacing='0.05em';
+  c.font=`${L.ts}px "IM Fell English SC", Georgia, serif`;c.globalAlpha=.3;c.fillText('The Nursery of Stars',PL.x+PL.w/2+1.6,L.titleY+1.6);c.globalAlpha=1;c.fillText('The Nursery of Stars',PL.x+PL.w/2,L.titleY);
+  if('letterSpacing' in c)c.letterSpacing='0px';
+  c.font=`italic ${Math.max(13,L.ts*.4)}px "IM Fell English", Georgia, serif`;c.globalAlpha=.8;c.fillText('A chart of harmony, drawn one note at a time',PL.x+PL.w/2,L.subY);c.globalAlpha=1;
+  /* chart */
+  c.fillStyle=t.band;c.beginPath();c.arc(CX,CY,RB,0,TAU);c.fill();c.fillStyle=t.sky;c.beginPath();c.arc(CX,CY,RR,0,TAU);c.fill();
+  c.lineWidth=2.2;circ(c,RB);c.lineWidth=.7;circ(c,RB-3.5);circ(c,RR+3.5);c.lineWidth=1.3;circ(c,RR);
+  const bw=RB-RR;c.lineWidth=.7;
+  for(let i=0;i<120;i++){const a=i/120*TAU,len=i%10===0?bw*.3:i%5===0?bw*.2:bw*.1,[x1,y1]=polar(a,RR+3.5),[x2,y2]=polar(a,RR+3.5+len),[x3,y3]=polar(a,RB-3.5),[x4,y4]=polar(a,RB-3.5-len*.5);
+    c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.moveTo(x3,y3);c.lineTo(x4,y4);c.stroke();}
+  c.fillStyle=t.ink;c.font=`${Math.round(bw*.4)}px "IM Fell English", Georgia, serif`;c.textAlign='center';c.textBaseline='middle';
+  for(let pc=0;pc<12;pc++){const [x,y]=polar(angOf(pc),RR+bw*.6);c.fillText(NAMES[pc],x,y+1);}
+  /* graticule: twelve meridians and the octave circles */
+  c.globalAlpha=.4;c.lineWidth=.7;
+  for(let pc=0;pc<12;pc++){const a=angOf(pc),[x1,y1]=polar(a,RR*.07),[x2,y2]=polar(a,RR);c.setLineDash([1.2,4]);c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();}
+  c.setLineDash([]);c.font=`italic ${Math.round(11*ss)}px "IM Fell English", Georgia, serif`;c.textBaseline='middle';
+  [[36,'ii'],[48,'iii'],[60,'iv'],[72,'v']].forEach(([m,lab])=>{const r=radOf(m)*RR;c.lineWidth=.6;circ(c,r,[4,4]);const [x,y]=polar(TAU/24,r);c.globalAlpha=.75;c.fillText(lab,x,y);c.globalAlpha=.4;});
+  c.globalAlpha=1;c.lineWidth=.9;circ(c,4.5*ss);c.beginPath();c.moveTo(CX-11*ss,CY);c.lineTo(CX+11*ss,CY);c.moveTo(CX,CY-11*ss);c.lineTo(CX,CY+11*ss);c.stroke();
+  /* the fixed heavens: Milky Way, ecliptic, background stars */
+  c.save();c.beginPath();c.arc(CX,CY,RR,0,TAU);c.clip();
+  const th=-.55,mwp=u=>[CX+u*RR*Math.cos(th)-RR*.16*u*u*Math.sin(th)+RR*.05,CY+RR*.08+u*RR*Math.sin(th)+RR*.16*u*u*Math.cos(th)];
+  for(let k=0;k<170;k++){const u=-1.25+k/170*2.5,[x,y]=mwp(u),w=RR*(.09+.045*Math.sin(u*3.1+1)+.03*Math.sin(u*7.3))*(.7+sr()*.6),ox=(sr()-.5)*w*.8,oy=(sr()-.5)*w*.8;
+    c.globalAlpha=t.mw*(.5+sr()*.6);c.drawImage(WASH,x+ox-w,y+oy-w,w*2,w*2);}
+  c.globalAlpha=.28;c.fillStyle=t.ink;c.beginPath();for(let k=0;k<1400;k++){const u=-1.25+sr()*2.5,[x,y]=mwp(u),w=RR*(.08+.04*Math.sin(u*3.1+1));c.rect(x+gaussS(sr)*w*.55,y+gaussS(sr)*w*.55,.9,.9);}c.fill();
+  c.globalAlpha=.42;c.strokeStyle=t.ink;c.lineWidth=.8;c.setLineDash([5,4]);const ecx=CX+RR*.14,ecy=CY-RR*.22,ecr=RR*.8;c.beginPath();c.arc(ecx,ecy,ecr,0,TAU);c.stroke();c.setLineDash([]);
+  c.restore();
+  c.fillStyle=t.ink;
+  const BG=[];for(let k=0;k<240;k++){const a=sr()*TAU,r=Math.sqrt(sr())*RR*.97,q=sr(),mag=q<.012?1:q<.05?2:q<.15?3:q<.4?4:5;const [x,y]=polar(a,r);if(r<18)continue;BG.push([x,y,mag]);
+    c.globalAlpha=mag<3?.85:mag<5?.65:.45;c.beginPath();c.arc(x,y,MAG[mag]*.62*ss,0,TAU);c.fill();}
+  /* a few fixed stars with their old names, and two nebulae */
+  const FIX=['Aldhera','Somnia','Hesperel','Caliga','Ostrel','Brumal','Antemna','Morrowmere'];
+  c.font=`italic ${Math.round(9.5*ss+1)}px "IM Fell English", Georgia, serif`;c.textAlign='left';c.textBaseline='middle';c.globalAlpha=.62;
+  BG.filter(b=>b[2]<=2).slice(0,6).forEach((b,k)=>{c.fillText(FIX[k],b[0]+6*ss,b[1]+1);});
+  for(let k=0;k<2;k++){const [x,y]=polar(sr()*TAU,RR*(.35+sr()*.5));c.globalAlpha=.5;c.beginPath();for(let d=0;d<70;d++){const a=sr()*TAU,r=Math.sqrt(sr());c.rect(x+Math.cos(a)*r*7*ss,y+Math.sin(a)*r*3.5*ss,.9,.9);}c.fill();
+    c.globalAlpha=.55;c.fillText('Neb.',x+9*ss,y+1);}
+  /* lettering along the Milky Way and the ecliptic */
+  c.globalAlpha=.62;c.textAlign='center';c.font=`italic ${Math.round(11*ss+1)}px "IM Fell English", Georgia, serif`;
+  const word='T h e   M i l k y   W a y';const stp=(9.5*ss+2)/RR;for(let k=0;k<word.length;k++){const u=-.05-stp*word.length/2+k*stp,[x,y]=mwp(u),[x2,y2]=mwp(u+.01),ang=Math.atan2(y2-y,x2-x);if(Math.hypot(x-CX,y-CY)>RR*.9)continue;
+    c.save();c.translate(x,y);c.rotate(ang);c.fillText(word[k],0,-RR*.005);c.restore();}
+  {const ph=2.5,[x,y]=[ecx+Math.cos(ph)*ecr,ecy+Math.sin(ph)*ecr];if(Math.hypot(x-CX,y-CY)<RR*.95){c.save();c.translate(x,y);c.rotate(ph+Math.PI/2+Math.PI);c.font=`italic ${Math.round(10*ss+1)}px "IM Fell English", Georgia, serif`;c.globalAlpha=.6;c.fillText('The Ecliptic',0,-5*ss);c.restore();}}
+  c.globalAlpha=1;
+  /* legend */
+  const s=L.ls,x0=L.legX,y0=L.legY,lw=L.legW,lh=L.legH;c.fillStyle=t.band;c.fillRect(x0,y0,lw,lh);c.lineWidth=1.2;c.strokeRect(x0,y0,lw,lh);c.lineWidth=.5;c.strokeRect(x0+3,y0+3,lw-6,lh-6);
+  c.fillStyle=t.ink;c.textAlign='center';c.textBaseline='alphabetic';const f=Math.max(10,11*s);
+  c.font=`${f*1.15}px "IM Fell English SC", Georgia, serif`;c.fillText('Stars',x0+lw/2,y0+17*s);
+  const ord=['1st','2nd','3rd','4th','5th'];for(let k=1;k<=5;k++){const x=x0+lw*(.14+.18*(k-1)),y=y0+30*s;c.beginPath();c.arc(x,y,MAG[k]*s,0,TAU);c.fill();
+    c.font=`italic ${f*.9}px "IM Fell English", Georgia, serif`;c.fillText(ord[k-1],x,y+15*s);}
+  c.font=`italic ${f}px "IM Fell English", Georgia, serif`;c.fillText('Magnitude.',x0+lw/2,y0+58*s);
+  c.textAlign='left';const rx=x0+18*s;
+  c.beginPath();c.arc(rx,y0+73*s,2*s,0,TAU);c.fill();c.lineWidth=.8;c.beginPath();c.arc(rx,y0+73*s,4.6*s,0,TAU);c.stroke();c.fillText('Born of a suspension',rx+14*s,y0+77*s);
+  {const P=[[rx-6*s,y0+95*s,1.9],[rx,y0+88*s,1.3],[rx+6*s,y0+94*s,1.5]];c.lineWidth=.7;c.beginPath();c.moveTo(P[0][0],P[0][1]);c.lineTo(P[1][0],P[1][1]);c.lineTo(P[2][0],P[2][1]);c.stroke();
+   P.forEach(([x,y,r])=>{c.beginPath();c.arc(x,y,r*s,0,TAU);c.fill();});}c.fillText('A sounding note',rx+14*s,y0+95*s);
+  sideFigures(c,t);
+  if(PL.y>=13){c.globalAlpha=.8;c.fillStyle=t.marg;const mf=Math.min(11,PL.y*.55);c.font=`italic ${mf}px "IM Fell English", Georgia, serif`;c.textBaseline='middle';
+    c.textAlign='left';c.fillText('Pl. XII.',PL.x+4,PL.y/2+1);c.textAlign='right';c.fillText('Astronomy of Sound',PL.x+PL.w-4,PL.y/2+1);
+    c.textAlign='center';c.fillText('Drawn & engraved for the Nursery of Stars · MDCCCLXXXI',W/2,H-PL.y/2+1);c.globalAlpha=1;}}
+
+/* ---------- voices: each sounding note is one star ---------- */
+const V=[];for(let i=0;i<5;i++)V.push({i,bass:i===0,midi:0,a:0,r:.5,lit:0,litT:.3,note:null,fa:0,da:0,fr:.5,tr:.5,fm:3,tm:3,t0:-1,dur:1,arc:0,w:rr(.1,.3),ph:R()*6.3});
+const magOf=m=>clamp(1+(m-40)/9,1,5);
+const srad=q=>(1.4+(5-q)*1.1)*ss;
+function placeVoice(v,m,snap){v.a=angOf(m%12);v.r=radOf(m);if(snap){v.fa=v.a;v.da=0;v.fr=v.tr=v.r;v.fm=v.tm=magOf(m);v.t0=-1;}}
+function starPos(v){const u=clamp((mclock-v.t0)/v.dur,0,1),e=u*u*(3-2*u),a=v.fa+v.da*e,r=(v.fr+(v.tr-v.fr)*e)*RR+Math.sin(Math.PI*e)*v.arc*RR*.06;return [CX+r*Math.sin(a),CY-r*Math.cos(a),v.fm+(v.tm-v.fm)*e];}
+
+/* ---------- constellation figures and their invented names ---------- */
+const NOUN=[['Lucerna','Lantern'],['Cochlea','Snail'],['Cithara','Harp'],['Nassa','Fish-Trap'],['Urnula','Little Urn'],['Clavis','Key'],['Fusus','Spindle'],['Velum','Sail'],
+  ['Speculum','Mirror'],['Vigilia','Night Watch'],['Columbella','Little Dove'],['Anserella','Gosling'],['Falcula','Sickle'],['Ancora','Anchor'],['Lucanus','Stag Beetle'],['Fistula','Shepherd’s Pipe'],
+  ['Cicada','Cicada'],['Scutella','Little Dish'],['Hamus','Fish-Hook'],['Lanterna Muta','Unlit Lamp'],['Sirena','Siren'],['Sarcina','Bundle'],['Rota','Wheel'],['Turricula','Little Tower'],
+  ['Pluvialis','Plover'],['Tessera','Dice'],['Vespertilio','Bat'],['Cerva','Hind'],['Lagena','Flask'],['Ericius','Hedgehog'],['Nautilus','Paper Sailor'],['Corolla','Garland']];
+const ADJ=[['Minor','Lesser'],['Major','Greater'],['Borealis','Northern'],['Australis','Southern'],['Dormiens','Sleeping'],['Errans','Wandering'],['Vetus','Old'],['Silens','Silent'],['Nova','New'],['Obliqua','Leaning']];
+let usedNames=new Set();
+function newName(){let n,a,key,tries=0;do{n=NOUN[Math.floor(R()*NOUN.length)];a=R()<.55?ADJ[Math.floor(R()*ADJ.length)]:null;key=n[0]+(a?a[0]:'');}while(usedNames.has(key)&&++tries<40);
+  usedNames.add(key);if(usedNames.size>60)usedNames=new Set([key]);return [a?n[0]+' '+a[0]:n[0],'The '+(a?a[1]+' ':'')+n[1]];}
+function segX(p1,p2,p3,p4){const d=(a,b,c)=>(c[0]-a[0])*(b[1]-a[1])-(c[1]-a[1])*(b[0]-a[0]);return d(p1,p2,p3)*d(p1,p2,p4)<0&&d(p3,p4,p1)*d(p3,p4,p2)<0;}
+function makeFigure(){const P=V.map(v=>polar(v.a,v.r*RR)),D=(a,b)=>Math.hypot(P[a][0]-P[b][0],P[a][1]-P[b][1]),all=[0,1,2,3,4];
+  const near=(t,pool)=>pool.slice().sort((x,y)=>D(t,x)-D(t,y))[0];
+  const gen=kind=>{const E=[],o=all.slice().sort(()=>R()-.5);
+    if(kind===0){/* a wandering line that visits the stars in a free order, doubling back across itself */for(let k=0;k<4;k++)E.push([o[k],o[k+1]]);}
+    else if(kind===1){/* a hub with three arms, one arm carrying a further star */const h=o[0],q=o.slice(1);E.push([h,q[0]],[h,q[1]],[h,q[2]],[q[R()<.5?0:1],q[3]]);}
+    else if(kind===2){/* two long strokes that cross like a saltire, with a fifth star hanging off one end */E.push([o[0],o[1]],[o[2],o[3]],[o[R()<.5?1:3],o[4]]);if(R()<.6)E.push([o[1],o[2]]);}
+    else if(kind===3){/* a fork: a stem that splits in two */E.push([o[0],o[1]],[o[1],o[2]],[o[2],o[3]],[o[2],o[4]]);}
+    else{/* a zigzag that runs to the far star and back */const far=all.slice().sort((x,y)=>D(o[0],y)-D(o[0],x))[0],rest=all.filter(i=>i!==o[0]&&i!==far);E.push([o[0],far],[far,rest[0]],[rest[0],rest[1]],[rest[1],rest[2]]);}
+    return E;};
+  const ncross=E=>{let n=0;for(let x=0;x<E.length;x++)for(let y=x+1;y<E.length;y++){const [p,q]=E[x],[r2,s2]=E[y];if(p===r2||p===s2||q===r2||q===s2)continue;if(segX(P[p],P[q],P[r2],P[s2]))n++;}return n;};
+  const tri=E=>{for(const [a,b] of E)for(const [c2,d2] of E){const sh=a===c2?[b,d2]:a===d2?[b,c2]:b===c2?[a,d2]:b===d2?[a,c2]:null;if(sh&&sh[0]!==sh[1]&&E.some(([x,y])=>(x===sh[0]&&y===sh[1])||(x===sh[1]&&y===sh[0])))return true;}return false;};
+  const want=R()<.8?1+Math.floor(R()*2):0;let best=null,bs=1e9;
+  for(let n=0;n<60;n++){const E=gen(Math.floor(R()*5));if(new Set(E.map(e=>e.slice().sort().join())).size<E.length)continue;
+    const len=E.reduce((s2,[a,b])=>s2+D(a,b),0),score=Math.abs(ncross(E)-want)*10+(tri(E)?25:0)+(len>RR*4.2?40:0)+R()*3;if(score<bs){bs=score;best=E;}}
+  return best||gen(3);}
+let nameA=0,figEdges=[],oldEdges=[],figName=null,oldName=null,figT=-1e9,link=null,oldLink=null;
+function newFigure(){oldEdges=figEdges;oldName=figName;oldLink=link;figT=mclock;
+  figEdges=makeFigure().sort(()=>R()-.5).map((e,k)=>({a:e[0],b:e[1],t:mclock+500+k*700}));figName=newName();
+  let best=null,bd=RR*.32;for(const st of stars.slice(0,-1))for(let i=0;i<5;i++){const [x,y]=polar(V[i].a,V[i].r*RR),[sx,sy]=polar(st.a,st.rf*RR),d=Math.hypot(x-sx,y-sy);if(d<bd&&d>RR*.05){bd=d;best={v:i,st};}}
+  link=best&&R()<.7?{...best,t:mclock+500+figEdges.length*700}:null;}
+/* ---------- harmony ---------- */
+const QUAL=[{n:'maj9',iv:[4,7,11,14],w:3},{n:'maj7♯11',iv:[4,11,14,18],w:2},{n:'6/9',iv:[4,9,14,19],w:2},{n:'m9',iv:[3,7,10,14],w:2.2},{n:'m11',iv:[3,10,14,17],w:1.5},{n:'9sus4',iv:[5,7,10,14],w:1.5}];
+const MOTION=[[-4,3],[4,2.2],[5,2.6],[-5,2],[-2,2],[2,1.4],[3,1.4],[-3,1.6],[8,1],[1,.4]];
+const pickW=a=>{let t=a.reduce((s,x)=>s+(x.w??x[1]),0),r=R()*t;for(const x of a){r-=(x.w??x[1]);if(r<=0)return x;}return a[0];};
+const PERMS=[];(function p(a,u){if(a.length===4){PERMS.push(a.slice());return;}for(let i=0;i<4;i++)if(!u[i]){u[i]=1;a.push(i);p(a,u);a.pop();u[i]=0;}})([],[]);
+const nearest=(m,pc)=>{const d=((pc-m)%12+12)%12;return d<=6?m+d:m+d-12;};
+let root=1,qual=QUAL[0];
+function chooseChord(){let r,q;do{r=(root+pickW(MOTION)[0]+12)%12;q=pickW(QUAL);}while(r===root&&q===qual);root=r;qual=q;return {root:r,q};}
+function voicing(ch,cur){const pcs=ch.q.iv.map(i=>(ch.root+i)%12);let b=nearest(cur[0],ch.root);while(b<34)b+=12;while(b>50)b-=12;let best=null,bc=1e9;
+  for(const pm of PERMS){let cost=0;const arr=[];for(let k=0;k<4;k++){let m=nearest(cur[k+1],pcs[pm[k]]);while(m<52)m+=12;while(m>79)m-=12;arr.push(m);cost+=Math.abs(m-cur[k+1]);}
+    if(new Set(arr).size<4)cost+=60;for(let x=0;x<4;x++)for(let y=x+1;y<4;y++){const d=Math.abs(arr[x]-arr[y]);if(d===1)cost+=9;else if(d===2)cost+=1.5;else if(d===11||d===13)cost+=3;}
+    if(Math.min(...arr)-b<5)cost+=20;if(cost<bc){bc=cost;best=arr;}}
+  return [b,...best];}
+function tensionOf(ms){let t=0;for(let a=0;a<ms.length;a++)for(let b=a+1;b<ms.length;b++){const d=Math.abs(ms[a]-ms[b]),ic=d%12;
+  if(d===1)t+=1;else if(d===2)t+=.12;else if(ic===1)t+=.35;else if(d===11)t+=.45;else if(ic===11)t+=.2;else if(ic===6)t+=.3;}return clamp(t/1.2,0,1);}
+
+/* ---------- sound ---------- */
+let A=null,master,lp,bus,bellBus;const mtof=m=>440*2**((m-69)/12);
+function initAudio(){A=new (window.AudioContext||window.webkitAudioContext)();master=A.createGain();master.gain.value=+vol.value*.9;
+  const comp=A.createDynamicsCompressor();comp.threshold.value=-20;comp.ratio.value=3;comp.attack.value=.05;comp.release.value=.6;master.connect(comp).connect(A.destination);
+  const rev=A.createConvolver(),len=A.sampleRate*7,buf=A.createBuffer(2,len,A.sampleRate);
+  for(let c=0;c<2;c++){const d=buf.getChannelData(c);for(let i=0;i<len;i++)d[i]=(R()*2-1)*(1-i/len)**3.4*(i<A.sampleRate*.03?i/(A.sampleRate*.03):1);}
+  rev.buffer=buf;const wet=A.createGain();wet.gain.value=.85;rev.connect(wet).connect(master);const dry=A.createGain();dry.gain.value=.5;dry.connect(master);
+  bus=A.createGain();bus.connect(dry);bus.connect(rev);bellBus=A.createGain();bellBus.connect(dry);bellBus.connect(rev);
+  lp=A.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2000;lp.Q.value=.4;lp.connect(bus);
+  const lfo=A.createOscillator(),lg=A.createGain();lfo.frequency.value=.045;lg.gain.value=800;lfo.connect(lg).connect(lp.frequency);lfo.start();
+  const nb=A.createBuffer(1,A.sampleRate*4,A.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=R()*2-1;
+  const ns=A.createBufferSource();ns.buffer=nb;ns.loop=true;const bp=A.createBiquadFilter();bp.type='bandpass';bp.frequency.value=520;bp.Q.value=.8;
+  const ng=A.createGain();ng.gain.value=.012;const nl=A.createOscillator(),nlg=A.createGain();nl.frequency.value=.07;nlg.gain.value=.007;nl.connect(nlg).connect(ng.gain);nl.start();ns.connect(bp).connect(ng).connect(bus);ns.start();}
+function playNote(m,bass,pan){const f=mtof(m),t=A.currentTime,g=A.createGain(),lvl=bass?.12:.058;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(lvl,t+(bass?3.8:2.8));
+  const os=[],mk=(type,mul,det,amt)=>{const o=A.createOscillator(),og=A.createGain();o.type=type;o.frequency.value=f*mul;o.detune.value=det;og.gain.value=amt;o.connect(og).connect(g);os.push(o);};
+  mk('sine',1,0,1);mk('triangle',1,6,.32);mk('sine',2,-5,bass?.05:.11);if(bass)mk('sine',.5,0,.35);
+  const vib=A.createOscillator(),vg=A.createGain();vib.frequency.value=rr(.12,.3);vg.gain.value=3.5;vib.connect(vg);os.forEach(o=>vg.connect(o.detune));os.push(vib);
+  const p=A.createStereoPanner();p.pan.value=pan;g.connect(p).connect(lp);os.forEach(o=>o.start(t));
+  return {stop(){const t=A.currentTime;g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.setTargetAtTime(0,t,1.4);os.forEach(o=>o.stop(t+10));}};}
+function bell(m,lvl,pan=0,delay=0){const f=mtof(m),t=A.currentTime+delay,p=A.createStereoPanner();p.pan.value=pan;p.connect(bellBus);
+  [[1,1],[2.76,.22],[5.4,.07]].forEach(([r,a])=>{const o=A.createOscillator(),g=A.createGain();o.frequency.value=f*r;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(lvl*a,t+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t+5.5/Math.sqrt(r));o.connect(g).connect(p);o.start(t);o.stop(t+6);});}
+
+/* ---------- engine: one note at a time, long rests ---------- */
+let mclock=0,nextAt=0,queue=[],pace=1,playing=false,started=false,tension=0,tS=0,maxT=0,born=0;
+let phase='passage',pendingName='D♭ maj9',curName='D♭ maj9';
+const stars=[],paths=[],PAN=[0,-.45,-.15,.15,.45];
+function moveVoice(i,m){const v=V[i];
+  if(A){try{if(v.note)v.note.stop();v.note=playNote(m,v.bass,PAN[i]);bell(v.bass?m+24:m+12,v.bass?.018:.03,PAN[i]);}catch(e){report(e);}}
+  const first=!v.midi,oa=v.a,or=v.r;v.midi=m;v.litT=1;
+  if(first)placeVoice(v,m,true);else{const u=clamp((mclock-v.t0)/v.dur,0,1),e=u*u*(3-2*u);v.fa+=v.da*e;v.fr+=(v.tr-v.fr)*e;v.fm+=(v.tm-v.fm)*e;
+    placeVoice(v,m,false);v.da=shortest(v.a-v.fa);v.tr=v.r;v.tm=magOf(m);v.t0=mclock+150;v.dur=rr(3400,4400);v.arc=gauss();}
+  if(!first){paths.push({fa:oa,da:shortest(v.a-oa),fr:or,tr:v.r,t:mclock});if(paths.length>12)paths.shift();}
+  tension=tensionOf(V.filter(x=>x.midi).map(x=>x.midi));maxT=Math.max(maxT,tension);}
+function labelBox(s){const [x,y]=polar(s.a,s.rf*RR),rad=MAG[s.mag]*ss;ctx.font=labelFont();const w=ctx.measureText(s.name).width;return [x-rad-2,y-8*ss,x+rad+6*ss+w,y+8*ss];}
+const labelFont=()=>`italic ${Math.round(10.5*ss+1)}px "IM Fell English", Georgia, serif`;
+function arrive(susp){phase='rest';curName=pendingName;
+  const mag=maxT>.85?1:maxT>.72?2:maxT>.6?3:maxT>.48?4:5;let a,rf,ok=false;
+  for(let n=0;n<12&&!ok;n++){const v=V[1+Math.floor(R()*4)];a=v.a+gauss()*.3;rf=clamp(v.r+gauss()*.1,.1,.95);const [x,y]=polar(a,rf*RR);
+    ok=stars.every(s=>{const [sx,sy]=polar(s.a,s.rf*RR);return Math.hypot(sx-x,sy-y)>14*ss;});}
+  const st={a,rf,mag,varb:susp,name:curName,t:performance.now(),label:false};const bx=labelBox(st);
+  st.label=stars.filter(s=>s.label).every(s=>{const o=labelBox(s);return bx[2]<o[0]||bx[0]>o[2]||bx[3]<o[1]||bx[1]>o[3];});
+  stars.push(st);if(stars.length>130)stars.shift();born++;newFigure();
+  if(A){try{const up=V.slice(1).map(v=>v.midi).sort((a,b)=>b-a);bell(up[0]+12,.022,rr(-.6,.6),.3);bell(up[1]+12,.016,rr(-.6,.6),1.1);}catch(e){report(e);}}
+  maxT=tension;}
+function planNext(){const ch=chooseChord();pendingName=NAMES[ch.root]+' '+ch.q.n;const base=V.map(v=>v.midi),target=voicing(ch,base);
+  if(R()<.42){const k=1+Math.floor(R()*4),clus=target.slice(),d=[1,1,2,-1,-2][Math.floor(R()*5)];clus[k]+=d;if(clus.some((m,j)=>j!==k&&m===clus[k]))clus[k]-=2*d;
+    const order=[0,1,2,3,4].filter(i=>clus[i]!==base[i]).sort(()=>R()-.5);
+    order.forEach((i,j)=>{const last=j===order.length-1;queue.push({act:()=>{phase=last?'suspension':'passage';moveVoice(i,clus[i]);},wait:last?rr(6,9):rr(2.4,4.6)});});
+    queue.push({act:()=>{moveVoice(k,target[k]);arrive(true);},wait:rr(15,23)});}
+  else{let order=[0,1,2,3,4].filter(i=>target[i]!==base[i]).sort(()=>R()-.5);
+    if(order.includes(0)&&R()<.55){order=order.filter(i=>i);order[R()<.5?'unshift':'push'](0);}
+    order.forEach((i,j)=>{const last=j===order.length-1;queue.push({act:()=>{phase='passage';moveVoice(i,target[i]);if(last)arrive(false);},wait:last?rr(15,23):rr(2.4,4.6)});});
+    if(!order.length)queue.push({act:()=>arrive(false),wait:15});}}
+function step(){if(!queue.length)planNext();const it=queue.shift();nextAt=mclock+it.wait*1000*pace;try{if(it.act)it.act();}catch(e){report(e);}}
+const OPEN=[37,53,56,60,63];V.forEach((v,i)=>{v.midi=OPEN[i];});
+
+/* ---------- drawing the living chart ---------- */
+function caption(){if(phase==='rest')return [`The present chord, ${curName}, at rest.`];
+  if(phase==='suspension')return [`Held in suspension before ${pendingName}.`];return [`The chord in passage toward ${pendingName}.`];}
+let last=performance.now();
+function frame(now){requestAnimationFrame(frame);try{draw(now);}catch(e){report(e);}}
+function draw(now){const dt=Math.min(100,now-last);last=now;
+  if(playing){mclock+=dt;while(mclock>=nextAt)step();}
+  tS+=(tension-tS)*Math.min(1,dt/2600);const turb=clamp((tS-.55)/.4,0,1),tt=reduce?0:now*.001,t=T,c=ctx;
+  c.clearRect(0,0,W,H);
+  const shim=turb>.04;
+  for(const v of V)v.lit+=(v.litT-v.lit)*Math.min(1,dt/1800);
+  const SP=V.map(v=>{const [x,y,mg]=starPos(v);return [x+Math.sin(tt*v.w*9+v.ph)*turb*3*ss,y+Math.cos(tt*v.w*8+v.ph)*turb*3*ss,mg];});
+  const seg=(A1,B1,ra,rb,pr)=>{const dx=B1[0]-A1[0],dy=B1[1]-A1[1],d=Math.hypot(dx,dy);if(d<2)return;const g1=(ra+4*ss)/d,g2=(rb+4*ss)/d;if(g1+g2>=1)return;
+    const f=g1+(1-g1-g2)*pr;c.moveTo(A1[0]+dx*g1,A1[1]+dy*g1);c.lineTo(A1[0]+dx*f,A1[1]+dy*f);};
+  c.strokeStyle=t.ink;c.lineWidth=1.05;if(shim){c.setLineDash([3,3]);c.lineDashOffset=-tt*12;}
+  const fo=1-clamp((mclock-figT)/2600,0,1);
+  if(fo>0&&oldEdges.length){c.globalAlpha=.75*fo;c.beginPath();for(const e of oldEdges)seg(SP[e.a],SP[e.b],srad(SP[e.a][2]),srad(SP[e.b][2]),1);c.stroke();}
+  for(const e of figEdges){const pr=clamp((mclock-e.t)/1500,0,1);if(pr<=0)continue;c.globalAlpha=.78*Math.min(V[e.a].lit,V[e.b].lit);c.beginPath();seg(SP[e.a],SP[e.b],srad(SP[e.a][2]),srad(SP[e.b][2]),pr*pr*(3-2*pr));c.stroke();}
+  c.setLineDash([1.5,4]);c.lineDashOffset=0;
+  for(const [L2,al] of [[oldLink,fo],[link,1]]){if(!L2||!stars.includes(L2.st)||al<=0)continue;const pr=clamp((mclock-L2.t)/1800,0,1);if(pr<=0)continue;
+    c.globalAlpha=.55*al;c.beginPath();seg(SP[L2.v],[...polar(L2.st.a,L2.st.rf*RR)],srad(SP[L2.v][2]),MAG[L2.st.mag]*ss,pr);c.stroke();}
+  c.setLineDash([]);
+  /* one star for each sounding note */
+  c.fillStyle=t.ink;c.strokeStyle=t.ink;
+  SP.forEach(([x,y,mg],i)=>{const v=V[i],r0=srad(mg),tw=.88+.12*Math.sin(tt*v.w*3+v.ph),h=r0*5.5;
+    c.globalAlpha=t.washA*v.lit*1.1;c.drawImage(WASH,x-h/2,y-h/2,h,h);if(shim){c.globalAlpha=turb*.45*v.lit;c.drawImage(WASHA,x-h/2,y-h/2,h,h);}
+    c.globalAlpha=v.lit*tw;c.beginPath();c.arc(x,y,Math.max(.1,r0),0,TAU);c.fill();
+    if(mg<2.2){c.lineWidth=.9;c.beginPath();for(let q=0;q<8;q++){const an=q/8*TAU+.2,l=q%2?1.9:2.6;c.moveTo(x+Math.cos(an)*r0*1.45,y+Math.sin(an)*r0*1.45);c.lineTo(x+Math.cos(an)*r0*l,y+Math.sin(an)*r0*l);}c.stroke();}});
+  /* the figure's name, set along its longest line, on the side facing the pole */
+  c.textAlign='center';c.fillStyle=t.ink;const fs=Math.round(12.5*ss+1);
+  const nameAt=(E,nm,al)=>{if(!nm||!E.length||al<.02)return;let best=E[0],bl=0;for(const e of E){const d=Math.hypot(SP[e.a][0]-SP[e.b][0],SP[e.a][1]-SP[e.b][1]);if(d>bl){bl=d;best=e;}}
+    const A1=SP[best.a],B1=SP[best.b],mx=(A1[0]+B1[0])/2,my=(A1[1]+B1[1])/2;let nx=-(B1[1]-A1[1]),ny=B1[0]-A1[0];const nl=Math.hypot(nx,ny)||1;nx/=nl;ny/=nl;
+    if(nx*(CX-mx)+ny*(CY-my)<0){nx=-nx;ny=-ny;}const lx=mx+nx*16*ss,ly=my+ny*16*ss+(ny>0?fs*.6:-fs*.2);
+    c.globalAlpha=al;c.textBaseline='alphabetic';c.font=`${fs}px "IM Fell English SC", Georgia, serif`;c.fillText(nm[0],lx,ly);
+    c.globalAlpha=al*.75;c.font=`italic ${Math.round(fs*.82)}px "IM Fell English", Georgia, serif`;c.fillText('('+nm[1]+')',lx,ly+fs*1.05);};
+  nameA+=((phase==='rest'&&mclock-figT>1800?1:0)-nameA)*Math.min(1,dt/(phase==='rest'?1600:500));nameAt(figEdges,figName,nameA*.92);
+  /* drift tracks, drawn like the dotted orbits of an old plate */
+  c.fillStyle=t.ink;c.strokeStyle=t.ink;c.lineWidth=.9;
+  for(const P of paths){const age=(mclock-P.t)/1000,al=clamp(1-(age-6)/12,0,1)*.38,pr=clamp(age/4.4,0,1);if(al<=0||pr<=0)continue;c.globalAlpha=al;
+    const pt=s=>polar(P.fa+P.da*s,(P.fr+(P.tr-P.fr)*s)*RR);let [lx,ly]=pt(0),acc=99;c.beginPath();
+    for(let j=0;j<=90;j++){const [x,y]=pt(pr*j/90);acc+=Math.hypot(x-lx,y-ly);lx=x;ly=y;if(acc>=5*ss){c.rect(x-.6,y-.6,1.3,1.3);acc=0;}}c.fill();
+    const [ex,ey]=pt(pr),[bx,by]=pt(Math.max(0,pr-.04));if(Math.hypot(ex-bx,ey-by)>.5){const ang=Math.atan2(ey-by,ex-bx),h=7*ss;c.beginPath();
+      c.moveTo(ex-h*Math.cos(ang-.4),ey-h*Math.sin(ang-.4));c.lineTo(ex,ey);c.lineTo(ex-h*Math.cos(ang+.4),ey-h*Math.sin(ang+.4));c.stroke();
+      const [fx0,fy0]=pt(Math.min(pr,.04)),[fx1,fy1]=pt(0),fa2=Math.atan2(fy0-fy1,fx0-fx1);
+      for(let q=0;q<2;q++){const ox=fx1+Math.cos(fa2)*q*3.5*ss,oy=fy1+Math.sin(fa2)*q*3.5*ss,f=5*ss;c.beginPath();c.moveTo(ox,oy);c.lineTo(ox-f*Math.cos(fa2-.7),oy-f*Math.sin(fa2-.7));c.moveTo(ox,oy);c.lineTo(ox-f*Math.cos(fa2+.7),oy-f*Math.sin(fa2+.7));c.stroke();}}}
+  /* catalogued stars */
+  c.textAlign='left';c.textBaseline='middle';c.font=labelFont();
+  for(const s of stars){const [x,y]=polar(s.a,s.rf*RR),age=Math.max(0,(now-s.t)/1000),fin=clamp(age/1.2,0,1),rad=MAG[s.mag]*ss;
+    c.globalAlpha=fin;c.fillStyle=t.ink;c.strokeStyle=t.ink;c.beginPath();c.arc(x,y,rad,0,TAU);c.fill();
+    if(s.mag===1){c.lineWidth=.8;c.beginPath();for(let j=0;j<8;j++){const a=j/8*TAU;c.moveTo(x+Math.cos(a)*rad*1.5,y+Math.sin(a)*rad*1.5);c.lineTo(x+Math.cos(a)*rad*2.5,y+Math.sin(a)*rad*2.5);}c.stroke();}
+    if(s.varb){c.lineWidth=.8;c.beginPath();c.arc(x,y,rad+2.8*ss,0,TAU);c.stroke();}
+    if(s===stars[stars.length-1]&&age<25){c.globalAlpha=fin*.85*clamp((25-age)/5,0,1);c.fillText(s.name,x+rad+(s.varb?6:4)*ss,y+1);}
+    if(age<5){const k=age/5;c.globalAlpha=(1-k)*.9;c.strokeStyle=`rgb(${t.accent})`;c.lineWidth=1.1;c.setLineDash([1.6,3.4]);c.beginPath();c.arc(x,y,Math.max(.1,rad+k*70*ss),0,TAU);c.stroke();
+      c.globalAlpha=(1-k)*.5;c.beginPath();c.arc(x,y,Math.max(.1,rad+k*38*ss),0,TAU);c.stroke();c.setLineDash([]);}}
+  /* the sounding notes, ringed on the rim */
+  c.strokeStyle=t.ink;c.lineWidth=.9;const bw=RB-RR;
+  for(const v of V){if(!v.midi)continue;const [x,y]=polar(v.a,RR+bw*.6);c.globalAlpha=.25+.75*v.lit;c.beginPath();c.arc(x,y,bw*.34,0,TAU);c.stroke();}
+  /* figure caption */
+  c.globalAlpha=1;c.fillStyle=t.ink;c.textBaseline='alphabetic';const f=Math.max(13,15*L.s),lead='Fig. 1. ',txt=caption()[0];
+  c.font=`${f}px "IM Fell English SC", Georgia, serif`;const lw=c.measureText(lead).width;c.font=`italic ${f}px "IM Fell English", Georgia, serif`;const tw=c.measureText(txt).width;
+  let x0=L.capAlign==='center'?L.capX-(lw+tw)/2:L.capX;c.textAlign='left';c.font=`${f}px "IM Fell English SC", Georgia, serif`;c.fillText(lead,x0,L.capY);
+  c.font=`italic ${f}px "IM Fell English", Georgia, serif`;c.fillText(txt,x0+lw,L.capY);
+  const cat=born?`Stars catalogued, ${born}.`:'No stars yet catalogued.';c.globalAlpha=.75;c.font=`italic ${f*.85}px "IM Fell English", Georgia, serif`;
+  c.textAlign=L.capAlign==='center'?'center':'left';c.fillText(cat,L.capAlign==='center'?L.capX:x0,L.capY+f*1.35);c.globalAlpha=1;}
+
+/* ---------- safety: never let an error freeze the chart, and make sure sound is on ---------- */
+const msg=$('msg');let errs=0;
+function report(e){errs++;console.error(e);if(errs<4){msg.textContent='Something went wrong: '+(e&&e.message||e);msg.hidden=false;}}
+addEventListener('error',e=>report(e.error||e.message));
+function checkSound(){if(!A){$('sound').hidden=false;return;}if(A.state!=='running'){$('sound').hidden=false;}}
+$('sound').addEventListener('click',()=>{try{if(!A)initAudio();A.resume().then(()=>{$('sound').hidden=true;bell(76,.04);}).catch(report);}catch(e){report(e);}});
+
+/* ---------- controls ---------- */
+const playBtn=$('play'),ico=$('ico'),vol=$('vol');
+const PAUSE='<rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/>',PLAY='<path d="M5 3l12 7-12 7z"/>';
+function setPlaying(on){playing=on;ico.innerHTML=on?PAUSE:PLAY;playBtn.setAttribute('aria-label',on?'Pause':'Play');if(A){on?A.resume().catch(()=>{}):A.suspend().catch(()=>{});}poke();}
+playBtn.addEventListener('click',()=>{if(started)setPlaying(!playing);});
+document.querySelectorAll('#pace button').forEach(b=>b.addEventListener('click',()=>{const old=pace;pace=+b.dataset.p;nextAt=mclock+(nextAt-mclock)*pace/old;
+  document.querySelectorAll('#pace button').forEach(x=>x.setAttribute('aria-pressed',x===b));}));
+function setPlate(name){themeName=name;T=THEMES[name];WASH=washSprite(T.wash);WASHA=washSprite(T.accent);
+  const r=document.documentElement.style;r.setProperty('--paper',T.paper);r.setProperty('--bar',T.bar);r.setProperty('--barInk',T.barInk);
+  document.querySelectorAll('#plates button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===name));if(W)paintStatic();}
+document.querySelectorAll('#plates button').forEach(b=>b.addEventListener('click',()=>setPlate(b.dataset.t)));
+vol.addEventListener('input',()=>{if(A)master.gain.setTargetAtTime(+vol.value*.9,A.currentTime,.1);});
+$('begin').addEventListener('click',()=>{try{initAudio();A.resume();const o=A.createOscillator(),g=A.createGain();g.gain.value=0.0001;o.connect(g).connect(A.destination);o.start();o.stop(A.currentTime+.05);}catch(e){report(e);}
+  $('start').classList.add('gone');started=true;
+  V.forEach(v=>{v.midi=0;v.litT=.12;});setTimeout(checkSound,1200);phase='passage';
+  OPEN.forEach((m,i)=>queue.push({act:()=>{moveVoice(i,m);if(i===4)arrive(false);},wait:i<4?2.8:rr(16,20)}));nextAt=mclock+600;setPlaying(true);});
+addEventListener('keydown',e=>{if(e.code==='Space'&&started&&e.target.tagName!=='BUTTON'){e.preventDefault();setPlaying(!playing);}});
+let idleT=0;function poke(){document.body.classList.remove('idle');clearTimeout(idleT);if(playing)idleT=setTimeout(()=>document.body.classList.add('idle'),4000);}
+['pointermove','pointerdown','keydown'].forEach(ev=>addEventListener(ev,poke));
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;for(const cv of [bg,fx]){cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);}
+  bctx.setTransform(DPR,0,0,DPR,0,0);ctx.setTransform(DPR,0,0,DPR,0,0);layout();V.forEach(v=>placeVoice(v,v.midi||OPEN[v.i],true));paintStatic();}
+setPlate(themeName);
+const ro=new ResizeObserver(resize);ro.observe(document.body);resize();
+if(document.fonts){Promise.all(['20px "IM Fell English SC"','20px "IM Fell English"','italic 20px "IM Fell English"'].map(f=>document.fonts.load(f))).then(()=>paintStatic()).catch(()=>{});}
+requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
