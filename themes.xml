@@ -1,0 +1,9 @@
+<resources>
+    <color name="night">#FF060D22</color>
+    <style name="Theme.StarSong" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/night</item>
+        <item name="android:colorBackground">@color/night</item>
+        <item name="android:statusBarColor">@color/night</item>
+        <item name="android:navigationBarColor">@color/night</item>
+    </style>
+</resources>

@@ -1,0 +1,61 @@
+# Builds Star Song for Android (Google Play) on GitHub's computers.
+# Run it from the Actions tab: "Android app - build" > Run workflow.
+# The result (StarSong-android-<number>) is an .aab file to upload in Google Play Console.
+# It needs the ANDROID_* secrets and the ANDROID_PACKAGE variable described in SETUP-GUIDE.md.
+name: Android app - build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANDROID_PACKAGE: ${{ vars.ANDROID_PACKAGE }}
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the settings are in place
+        run: |
+          missing=""
+          [ -n "$ANDROID_PACKAGE" ] || missing="$missing ANDROID_PACKAGE(variable)"
+          [ -n "$KEYSTORE_B64" ] || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing ANDROID_KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ] || missing="$missing ANDROID_KEY_PASSWORD"
+          if [ -n "$missing" ]; then echo "::error::Missing on GitHub:$missing (see SETUP-GUIDE.md, Android part)"; exit 1; fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Unpack the signing key
+        run: echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build the app bundle
+        working-directory: android
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/upload.jks
+        run: gradle --no-daemon bundleRelease -PappId="$ANDROID_PACKAGE" -PbuildNumber="${{ github.run_number }}"
+
+      - name: Keep the app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: StarSong-android-${{ github.run_number }}
+          path: android/app/build/outputs/bundle/release/*.aab
+
+      - name: Remove the signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"

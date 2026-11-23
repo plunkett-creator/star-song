@@ -1,0 +1,71 @@
+# XcodeGen spec: the cloud build turns this into StarSong.xcodeproj.
+# The bundle ID below is replaced at build time by the BUNDLE_ID variable you set on GitHub.
+name: StarSong
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+
+targets:
+  StarSong:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: ../Web
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: StarSong
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.starsong
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Manual
+        ENABLE_BITCODE: NO
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: en
+        CFBundleDisplayName: Star Song
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        LSApplicationCategoryType: public.app-category.music
+        ITSAppUsesNonExemptEncryption: false
+        UIStatusBarHidden: true
+        UIRequiresFullScreen: false
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+schemes:
+  StarSong:
+    build:
+      targets:
+        StarSong: all
+    run:
+      config: Debug
+    archive:
+      config: Release
